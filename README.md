@@ -1,1 +1,1 @@
-# socialfi-agent
+# SocialFi-Agent

@@ -1,0 +1,11 @@
+type WhoAmI = 
+ service {
+   argument: () -> (principal) query;
+   greet: (text) -> (text) query;
+   helloworld: (text, text) -> (text) query;
+   id: () -> (principal);
+   idQuick: () -> (principal);
+   installer: () -> (principal) query;
+   whoami: () -> (principal);
+ };
+service : (principal) -> WhoAmI
