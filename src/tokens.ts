@@ -1,60 +1,97 @@
+import Knex from 'knex';
+import { Connector, IpAddressTypes } from '@google-cloud/cloud-sql-connector'
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager'
+
+const client = new SecretManagerServiceClient();
+
+async function accessSecretVersion(secretName: string) {
+  const [version] = await client.accessSecretVersion({ name: secretName });
+  return version.payload?.data;
+}
+
+export const createPool = async () => {
+  const connector = new Connector();
+  const clientOpts = await connector.getOptions({
+    instanceConnectionName: process.env.INSTANCE_CONNECTION_NAME || "",
+    ipType: IpAddressTypes.PUBLIC,
+  });
+
+  const dbConfig = {
+    client: 'pg',
+    connection: {
+      ...clientOpts,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASS,
+      database: process.env.DB_NAME,
+    },
+    pool: {
+      max: 5,
+      min: 5,
+      acquireTimeoutMillis: 60000,
+      createTimeoutMillis: 30000,
+      idleTimeoutMillis: 600000,
+      createRetryIntervalMillis: 200,
+    }
+  };
+  const knex = Knex(dbConfig)
+  try {
+    await knex.raw('SELECT now()')
+    return knex
+  } catch (error) {
+    throw new Error('Unable to connect to Postgres via Knex. Ensure a valid connection.')
+  }
+};
 
 export interface Token {
   symbol: string;
   canister: string;
+  createTime?: Date;
+  updateTime?: Date;
 }
 
-// TODO: persistent storage
-let tokenList: Token[] = [];
-
-export function createToken(symbol: string, canister: string): Token {
-  const newToken: Token = { symbol, canister };
-  tokenList.push(newToken);
-  return newToken;
+export const insertToken = async (pool: Knex.Knex, token: Token) => {
+  const [symbol] = await pool('tokens')
+    .insert({
+      symbol: token.symbol,
+      canister: token.canister,
+    }, ['symbol'])
+    .onConflict('symbol')
+    .ignore();
+  return symbol;
 }
 
-export function getTokens(): Token[] {
-  return tokenList;
+export const getTokens = async (pool: Knex.Knex) => {
+  return await pool
+    .select('symbol', 'canister')
+    .from('tokens')
+    .orderBy('symbol') as Token[];
 }
 
-export function getTokenBySymbol(symbol: string): Token | undefined {
-  return tokenList.find(token => token.symbol === symbol);
+export const getTokenBySymbol = async (pool: Knex.Knex, symbol: string) => {
+  return await pool
+    .select('symbol', 'canister')
+    .from('tokens')
+    .where({ symbol })
+    .first() as Token | undefined;
 }
 
-export function updateToken(symbol: string, updatedToken: Token): boolean {
-  const index = tokenList.findIndex(token => token.symbol === symbol);
-  if (index !== -1) {
-    tokenList[index] = updatedToken;
-    return true;
-  }
-  return false;
+export const updateToken = async (pool: Knex.Knex, token: Token) => {
+  const { symbol, canister } = token;
+  return await pool('tokens')
+    .where({ symbol })
+    .update({ canister, updatetime: pool.raw('DEFAULT')});
 }
 
-export function deleteToken(symbol: string): boolean {
-  const index = tokenList.findIndex(token => token.symbol === symbol);
-  if (index !== -1) {
-    tokenList.splice(index, 1);
-    return true;
-  }
-  return false;
+export const deleteToken = async (pool: Knex.Knex, symbol: string) => {
+  return await pool('tokens')
+    .where({ symbol })
+    .delete();
 }
 
-// createToken('ICP', 'ryjl3-tyaaa-aaaaa-aaaba-cai');
-// createToken('XTC', 'qyjl3-tyaaa-aaaaa-aaaba-cai');
-// createToken('DFX', 'efxjl-tyaaa-aaaaa-aaaba-cai');
 
-// console.log('All tokens:', getTokens());
-
-// const icpToken = getTokenBySymbol('ICP');
-// if (icpToken) {
-//   console.log('ICP token:', icpToken);
-// }
-
-// const updatedToken: Token = { symbol: 'XTC', canister: 'new-canister-id' };
-// const updateSuccess = updateToken('XTC', updatedToken);
-// console.log('Update success:', updateSuccess);
-
-// const deleteSuccess = deleteToken('DFX');
-// console.log('Delete success:', deleteSuccess);
-
-// console.log('All tokens after update and delete:', getTokens());
+// CREATE TABLE tokens (
+//   symbol TEXT PRIMARY KEY,
+//   canister TEXT NOT NULL,
+//   createTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+//   updateTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+// );
