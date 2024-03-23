@@ -1,13 +1,5 @@
 import Knex from 'knex';
 import { Connector, IpAddressTypes } from '@google-cloud/cloud-sql-connector'
-import { SecretManagerServiceClient } from '@google-cloud/secret-manager'
-
-const client = new SecretManagerServiceClient();
-
-async function accessSecretVersion(secretName: string) {
-  const [version] = await client.accessSecretVersion({ name: secretName });
-  return version.payload?.data;
-}
 
 export const createPool = async () => {
   const connector = new Connector();
