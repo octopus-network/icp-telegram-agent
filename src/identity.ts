@@ -1,7 +1,6 @@
 import { Principal } from '@dfinity/principal';
 import { Ed25519KeyIdentity, DelegationChain, DelegationIdentity } from "@dfinity/identity";
 import { sha256 } from '@noble/hashes/sha256'
-import exp from 'constants';
 
 export function gatewayIdentity(): Ed25519KeyIdentity {
   const seed = sha256(new Uint8Array([0, 1, 2, 3])) // TODO: sha256

@@ -1,0 +1,28 @@
+type RedEnvelope = record {
+  num : nat8;
+  status : nat8;
+  participants : vec record { principal; nat };
+  token_id : principal;
+  owner : principal;
+  memo : text;
+  is_random : bool;
+  amount : nat;
+  expires_at : opt nat64;
+};
+type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : nat; Err : text };
+service : () -> {
+  add_agent_acc : (principal) -> (Result);
+  add_token_to_white_list : (principal, nat8) -> (Result);
+  create_red_envelope : (RedEnvelope) -> (Result_1);
+  get_admin_acc : () -> (principal) query;
+  get_need_transfer_from_status : () -> (bool) query;
+  get_red_envelope : (nat) -> (opt RedEnvelope) query;
+  is_agent_acc : (principal) -> (bool) query;
+  is_token_in_white_list : (principal) -> (bool) query;
+  open_red_envelope : (nat, principal) -> (Result_1);
+  remove_token_from_white_list : (principal) -> (Result);
+  set_admin_acc : (principal) -> (Result);
+  set_need_transfer_from_status : (bool) -> (Result);
+  set_receive_max_number_of_each : (nat) -> (Result);
+}
