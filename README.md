@@ -18,6 +18,19 @@ RE_SECRET_TOKEN="..."
 
 ```
 
+## telegram <--> agent <--> reapp
+| command   | command args      | call reapp | output       | agent -> reapp  |
+| :-------- | :---------------- | :--------: | :----------- | --------------- |
+| /start    | -                 | N          | some text    | - |
+| /help     | -                 | N          | some text    | - |
+| /listre   | -                 | Y          | [re list]?   | user_principal |
+| /createre | symbol<br/>amount | Y          | reid?        | user_principal<br>symbol<br/>amount |
+| /sendre   | reid              | Y          | success?     | user_principal<br>reid |
+| /grabre   | reid              | Y          | amount?      | user_principal<br>reid |
+| /revokere | reid              | Y          | success?     | user_principal<br>reid |
+| /balance  | symbol[O]         | N          | [token list] | - |
+
+
 ## Deploy
 - Using individual service accounts for your functions [Link](https://cloud.google.com/functions/docs/securing/function-identity#individual)
     - Cloud Run Invoker
