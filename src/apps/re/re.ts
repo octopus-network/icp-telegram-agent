@@ -2,8 +2,9 @@ import { Telegraf } from "telegraf";
 import { message } from 'telegraf/filters';
 
 import { makeAgent } from '../../utils'
-import { gatewayIdentity, userIdentity, delegateIdentity } from '../../identity'
-import { getTokens, getTokenBySymbol } from '../../tokens'
+import { gatewayIdentity, userIdentity, delegateIdentity, hasUserIdentity } from '../../identity'
+import { createPool, getTokens, getTokenBySymbol } from '../../tokens'
+import { icrc1BalanceOf, icrc1Transfer } from "../ledger/ledger";
 
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
@@ -22,11 +23,18 @@ bot.on(message('text'), async ctx => {
   const text = ctx.message.text
 
   if (text && text.startsWith('/')) {
-    const command = text.split(' ')[0];
-
-    switch (command) {
+    const [cmd, ...args] = text.split(' ');
+    // Ensure wallet address
+    const createWalletCmds = ['/listre', '/createre', '/sendre', '/grabre', '/balance']
+    if (createWalletCmds.includes(cmd) && !hasUserIdentity(userId)) {
+      const principal = userIdentity(userId).getPrincipal().toText()
+      ctx.reply(`Wallet address: ${principal}`)
+      return 
+    }
+    // Process command
+    switch (cmd) {
       case '/start':
-        ctx.reply('Welcome to hello world bot!')
+        ctx.reply('Welcome to rbot!')
         break;
       case '/help':
         ctx.reply('Here are the available commands:\n/start - Start the bot\n/help - Show this help message')
@@ -35,22 +43,56 @@ bot.on(message('text'), async ctx => {
         // call re_app list_re
         break;
       case '/createre':
-        // transfer
-        // call re_app create_re
+        if (args.length !== 2) {
+          ctx.reply(`Invalid input: ${text}`)
+          return
+        }
+        try {
+          typeof BigInt(args[1]) === 'bigint'
+        } catch (error) {
+          ctx.reply(`Invalid amount: ${args[1]}`)
+          return
+        }
+        const token = await getTokenBySymbol(await createPool(), args[0])
+        if (!token) {
+          ctx.reply(`Invalid symbol: ${args[0]}`)
+          return
+        }
+        const result = await icrc1Transfer(token, userId, BigInt(args[1]))
+        if ('Err' in result) {
+          ctx.reply(`Transfer error: ${result['Err']}`)
+          return
+        }
+        // TODO: call re_app create_re
         break;
       case '/sendre':
-        // call re_app send_re
+        if (args.length !== 1) {
+          ctx.reply(`Invalid input: ${text}`)
+          return
+        }
+        // TODO: call re_app send_re
         break;
       case '/grabre':
-        // call re_app send_re
+        if (args.length !== 1) {
+          ctx.reply(`Invalid input: ${text}`)
+          return
+        }
+        // TODO: call re_app send_re
         break;
       case '/revokere':
-        // call re_app revoke_re
+        if (args.length !== 1) {
+          ctx.reply(`Invalid input: ${text}`)
+          return
+        }
+        // TODO: call re_app revoke_re
         break;
       case '/balance':
-        const tokens = getTokens();
-        tokens.forEach(token => {})
-        ctx.reply("")
+        const tokens = await getTokens(await createPool());
+        const balances = await Promise.all(tokens.map(async (token) => ({
+          symbol: token.symbol,
+          balance: await icrc1BalanceOf(token, userId),
+        })));
+        ctx.reply(JSON.stringify(balances))
       default:
         ctx.reply('Invalid command. Type /help to see the available commands.')
     }
