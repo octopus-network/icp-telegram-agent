@@ -3,6 +3,7 @@ import { message, callbackQuery } from 'telegraf/filters';
 import { Principal } from '@dfinity/principal';
 import { Ed25519KeyIdentity } from "@dfinity/identity";
 import type { ActorSubclass } from "@dfinity/agent";
+import { table, getBorderCharacters } from "table";
 
 import { createActor } from './declarations/rbot_backend';
 import { RedEnvelope } from "./declarations/rbot_backend/rbot_backend.did";
@@ -35,7 +36,7 @@ bot.on(message('text'), async ctx => {
     // Ensure wallet address
     const walletCmds = ['/balance', '/address', '/transfer']
     const reCmds = ['/listre', '/createre', '/sendre', '/grabre']
-    if (walletCmds.includes(cmd) || reCmds.includes(cmd) && !hasUserIdentity(userId)) {
+    if ((walletCmds.includes(cmd) || reCmds.includes(cmd)) && !hasUserIdentity(userId)) {
       const principal = getUserIdentity(userId).getPrincipal().toText()
       ctx.reply(`Wallet address: ${principal}`)
       return
@@ -137,15 +138,16 @@ bot.on(message('text'), async ctx => {
         break
       case '/balance':
         const tokens = await getTokens(await createPool());
-        const balances = await Promise.all(tokens.map(async (token) => ({
-          symbol: token.symbol,
-          balance: await icrc1BalanceOf(token, userId),
-        })));
-        let markdownTable = "| Token | Amount |\n| --- | --- |\n";
-        for (const balance of balances) {
-          markdownTable += `| ${balance.symbol} | ${balance.balance} |\n`;
-        }
-        ctx.replyWithMarkdownV2("```"+markdownTable+"```")
+        const balances = await Promise.all(tokens.map(async (token) => ([
+          token.symbol,
+          (await icrc1BalanceOf(token, userId)).toString()
+        ])));
+        balances.unshift(['Token', 'Amount']);
+        const tableString = table(balances, {
+          singleLine: true,
+          border: getBorderCharacters('ramac')
+        })
+        ctx.replyWithHTML("<pre>" + tableString + "</pre>")
         break
       case '/transfer': {
         if (args.length !== 3) {
@@ -189,15 +191,16 @@ bot.on(callbackQuery("data"), async ctx => {
       break;
     case 'showBalance':
       const tokens = await getTokens(await createPool());
-      const balances = await Promise.all(tokens.map(async (token) => ({
-        symbol: token.symbol,
-        balance: await icrc1BalanceOf(token, userId),
-      })));
-      let markdownTable = "| Token | Amount |\n| --- | --- |\n";
-      for (const balance of balances) {
-        markdownTable += `| ${balance.symbol} | ${balance.balance} |\n`;
-      }
-      ctx.replyWithMarkdownV2("```"+markdownTable+"```")
+      const balances = await Promise.all(tokens.map(async (token) => ([
+        token.symbol,
+        (await icrc1BalanceOf(token, userId)).toString()
+      ])));
+      balances.unshift(['Token', 'Amount']);
+      const tableString = table(balances, {
+        singleLine: true,
+        border: getBorderCharacters('ramac')
+      })
+      ctx.replyWithHTML("<pre>" + tableString + "</pre>")
       break;
     case 'showHowToTransfer':
       ctx.reply(C.RBOT_HOW_TO_TRANSFER_MESSAGE)
@@ -206,7 +209,7 @@ bot.on(callbackQuery("data"), async ctx => {
       ctx.reply(C.RBOT_HOW_TO_CREATE_RED_ENVELOPE)
       break;
     case 'showRedEnvelopesYouCreated':
-      break; 
+      break;
     case 'showCommandList':
       ctx.replyWithHTML(C.RBOT_HELP_MESSAGE)
       break;
