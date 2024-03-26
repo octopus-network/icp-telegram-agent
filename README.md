@@ -4,12 +4,6 @@
 ```
 DFX_NETWORK="local" or "mainnet"
 
-# helloworld app
-HELLOWORLD_CANISTER_ID="gb6fh-2yaaa-aaaal-ad6cq-cai"
-HELLOWORLD_BOT_TOKEN="..."
-HELLOWORLD_WEBHOOK_PATH="/"
-HELLOWORLD_SECRET_TOKEN="..."
-
 # re app
 RE_CANISTER_ID=""
 RE_BOT_TOKEN="..."
@@ -40,6 +34,39 @@ RE_SECRET_TOKEN="..."
 - Making a secret accessible to a function [Link](https://cloud.google.com/functions/docs/configuring/secrets#making_a_secret_accessible_to_a_function)
 
 ```
+gcloud functions deploy rbot \
+  --gen2 \
+  --runtime=nodejs20 \
+  --region=us-central1 \
+  --source=. \
+  --entry-point=rbot \
+  --trigger-http \
+  --allow-unauthenticated \
+  --set-env-vars DEBUG=telegraf:* \
+  --set-env-vars DFX_NETWORK=mainet \
+  --set-env-vars RBOT_CANISTER_ID=xxxxx-xxxxx-xxxxx-xxxxx-xxx \
+  --set-env-vars RBOT_WEBHOOK_PATH=/ \
+  --set-secrets  RBOT_BOT_TOKEN=projects/398338012986/secrets/socialfi-agent-rbot-bot-token:1 \
+  --set-secrets  RBOT_SECRET_TOKEN=projects/398338012986/secrets/socialfi-agent-rbot-secret-token:1 \
+  --set-env-vars DB_INSTANCE_CONNECTION_NAME=octopus-dev-309403:asia-east1:octopus \
+  --set-env-vars DB_NAME=socialfi-agent \
+  --set-env-vars DB_USER=socialfi-agent \
+  --set-secrets  DB_PASS=projects/398338012986/secrets/socialfi-agent-db-password:1
+
+```
+
+
+
+## Hello World Template
+```
+# helloworld app
+HELLOWORLD_CANISTER_ID="gb6fh-2yaaa-aaaal-ad6cq-cai"
+HELLOWORLD_BOT_TOKEN="..."
+HELLOWORLD_WEBHOOK_PATH="/"
+HELLOWORLD_SECRET_TOKEN="..."
+```
+
+```
 gcloud functions deploy helloworld \
   --gen2 \
   --runtime=nodejs20 \
@@ -52,7 +79,7 @@ gcloud functions deploy helloworld \
   --set-env-vars DFX_NETWORK=mainet \
   --set-env-vars HELLOWORLD_CANISTER_ID=gb6fh-2yaaa-aaaal-ad6cq-cai \
   --set-env-vars HELLOWORLD_WEBHOOK_PATH=/ \
-  --set-secrets HELLOWORLD_BOT_TOKEN=socialfi-agent-helloworld_bot_token:1 \
-  --set-secrets HELLOWORLD_SECRET_TOKEN=socialfi-agent-helloworld_secret_token:1
+  --set-secrets HELLOWORLD_BOT_TOKEN=socialfi-agent-helloworld-bot-token:1 \
+  --set-secrets HELLOWORLD_SECRET_TOKEN=socialfi-agent-helloworld-secret-token:1
 
 ```

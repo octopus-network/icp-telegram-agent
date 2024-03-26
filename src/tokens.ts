@@ -4,7 +4,7 @@ import { Connector, IpAddressTypes } from '@google-cloud/cloud-sql-connector'
 export const createPool = async () => {
   const connector = new Connector();
   const clientOpts = await connector.getOptions({
-    instanceConnectionName: process.env.INSTANCE_CONNECTION_NAME || "",
+    instanceConnectionName: process.env.DB_INSTANCE_CONNECTION_NAME || "",
     ipType: IpAddressTypes.PUBLIC,
   });
 

@@ -16,10 +16,10 @@ if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
 
-const CANISTER_ID = process.env.RE_CANISTER_ID || ""
-const BOT_TOKEN = process.env.RE_BOT_TOKEN || ""
-const WEBHOOK_PATH = process.env.RE_WEBHOOK_PATH || ""
-const SECRET_TOKEN = process.env.RE_SECRET_TOKEN || ""
+const CANISTER_ID = process.env.RBOT_CANISTER_ID || ""
+const BOT_TOKEN = process.env.RBOT_BOT_TOKEN || ""
+const WEBHOOK_PATH = process.env.RBOT_WEBHOOK_PATH || ""
+const SECRET_TOKEN = process.env.RBOT_SECRET_TOKEN || ""
 
 const bot = new Telegraf(BOT_TOKEN);
 
