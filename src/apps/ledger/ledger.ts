@@ -8,7 +8,7 @@ import type { Account, Tokens, TransferArg, TransferResult, ApproveArgs, Approve
 // import type {  icrc1_ledger_canister } from "./declarations/icrc1_ledger_canister";
 
 import { makeAgent } from '../../utils'
-import { gatewayIdentity, userIdentity, userPrincipal, delegateIdentity } from '../../identity'
+import { getAgentIdentity, getUserIdentity, delegateIdentity } from '../../identity'
 import type { Token } from '../../tokens'
 
 async function getTokenActor(token: Token, userid: number, delegation: boolean): Promise<ActorSubclass<_SERVICE>> {
@@ -17,14 +17,15 @@ async function getTokenActor(token: Token, userid: number, delegation: boolean):
     const agent = await makeAgent({ fetch, identity })
     return createActor(token.canister, { agent })
   } else {
-    const identity = gatewayIdentity();
+    const identity = getAgentIdentity();
     const agent = await makeAgent({ fetch, identity })
     return createActor(token.canister, { agent })
   }
 }
 
 export async function icrc1BalanceOf(token: Token, userid: number): Promise<bigint> {
-  const account: Account = { owner: userPrincipal(userid), subaccount: [] }
+  const principal = getUserIdentity(userid).getPrincipal()
+  const account: Account = { owner: principal, subaccount: [] }
   const actor = await getTokenActor(token, userid, true);
   return actor.icrc1_balance_of(account)
 }

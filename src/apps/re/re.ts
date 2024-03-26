@@ -8,7 +8,7 @@ import { createActor } from './declarations/rbot_backend';
 import { RedEnvelope } from "./declarations/rbot_backend/rbot_backend.did";
 import { _SERVICE } from "./declarations/rbot_backend/rbot_backend.did";
 import { makeAgent } from '../../utils'
-import { gatewayIdentity, userIdentity, delegateIdentity, hasUserIdentity } from '../../identity'
+import { getAgentIdentity, getUserIdentity, delegateIdentity, hasUserIdentity } from '../../identity'
 import { createPool, getTokens, getTokenBySymbol } from '../../tokens'
 import { icrc1BalanceOf, icrc1Transfer } from "../ledger/ledger";
 
@@ -34,17 +34,17 @@ bot.on(message('text'), async ctx => {
     const walletCmds = ['/balance', '/address', '/transfer']
     const reCmds = ['/listre', '/createre', '/sendre', '/grabre']
     if (walletCmds.includes(cmd) || reCmds.includes(cmd) && !hasUserIdentity(userId)) {
-      const principal = userIdentity(userId).getPrincipal().toText()
+      const principal = getUserIdentity(userId).getPrincipal().toText()
       ctx.reply(`Wallet address: ${principal}`)
       return 
     }
     // Init identity & actor
     let agentIdentity: Ed25519KeyIdentity | null = null;
-    let _userIdentity: Ed25519KeyIdentity | null = null;
+    let userIdentity: Ed25519KeyIdentity | null = null;
     let serviceActor: ActorSubclass<_SERVICE> | null = null;
     if (walletCmds.includes(cmd)) {
-      agentIdentity = gatewayIdentity()
-      _userIdentity = userIdentity(userId)
+      agentIdentity = getAgentIdentity()
+      userIdentity = getUserIdentity(userId)
       serviceActor = createActor(CANISTER_ID, {agent: await makeAgent({fetch, identity: agentIdentity})})
     }
     // Process command
@@ -83,9 +83,9 @@ bot.on(message('text'), async ctx => {
         // TODO: call re_app create_re
         const re : RedEnvelope = {
           token_id: Principal.fromText(token.canister),
-          owner: _userIdentity.getPrincipal(),
+          owner: userIdentity!.getPrincipal(),
         }
-        const ret2 = await serviceActor.create_red_envelope(re)
+        const ret2 = await serviceActor?.create_red_envelope(re)
         ctx.reply(ret2)
         break;
       }
@@ -108,7 +108,7 @@ bot.on(message('text'), async ctx => {
           return
         }
         // TODO: call re_app grab_re
-        const ret = await serviceActor.open_red_envelope(BigInt(args[0]), _userIdentity.getPrincipal())
+        const ret = await serviceActor?.open_red_envelope(BigInt(args[0]), userIdentity!.getPrincipal())
         ctx.reply(ret)
         break;
       case '/revokere':
@@ -120,7 +120,7 @@ bot.on(message('text'), async ctx => {
         break;
       // wallet commands
       case '/address':
-        const address = userIdentity(userId).getPrincipal().toText()
+        const address = getUserIdentity(userId).getPrincipal().toText()
         ctx.reply(`Wallet address: ${address}`)
         break
       case '/balance':
@@ -149,7 +149,7 @@ bot.on(message('text'), async ctx => {
         }
         const result = await icrc1Transfer(token, userId, BigInt(args[1]), Principal.fromText(args[2]))
         if ('Err' in result) {
-          ctx.reply(`Transfer error: ${ret['Err']}`)
+          ctx.reply(`Transfer error: ${result['Err']}`)
         } else {
           ctx.reply(`Transfer ${args[1]} ${args[0]} to ${args[2]}`)
         }

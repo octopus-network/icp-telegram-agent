@@ -3,7 +3,7 @@ import { message } from 'telegraf/filters';
 
 import { createActor } from './declarations/whoami';
 import { makeAgent } from '../../utils'
-import { gatewayIdentity, userIdentity, delegateIdentity } from '../../identity'
+import { getAgentIdentity, getUserIdentity, delegateIdentity } from '../../identity'
 
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
@@ -32,30 +32,30 @@ bot.on(message('text'), async ctx => {
         ctx.reply('Here are the available commands:\n/start - Start the bot\n/help - Show this help message')
         break;
       case '/whoami':{
-        const gtwIdentity = gatewayIdentity();
+        const gtwIdentity = getAgentIdentity();
         console.log(`[Gateway] Principal: ${gtwIdentity.getPrincipal().toText()}`);
         const delIdentity = await delegateIdentity(userId, CANISTER_ID);
         console.log(`[Delegation] Principal: ${delIdentity.getPrincipal().toText()}`);
       
-        const gwAgent = await makeAgent({fetch, identity: gtwIdentity})
-        const gwActor = createActor(CANISTER_ID, {agent: gwAgent})
-        const gwPrincipal = (await gwActor.whoami()).toText()
+        const gtwAgent = await makeAgent({fetch, identity: gtwIdentity})
+        const gtwActor = createActor(CANISTER_ID, {agent: gtwAgent})
+        const gtwPrincipal = (await gtwActor.whoami()).toText()
       
         const delAgent = await makeAgent({fetch, identity: delIdentity})
         const delActor = createActor(CANISTER_ID, {agent: delAgent})
         const userPrincipal = (await delActor.whoami()).toText()
 
-        const result = 'Call with gateway identity, return gateway principal: ' + gwPrincipal + "\nCall via delegation, return user principal: " + userPrincipal;
+        const result = 'Call with gateway identity, return gateway principal: ' + gtwPrincipal + "\nCall via delegation, return user principal: " + userPrincipal;
         ctx.reply(result);
         break;
       }
       case '/helloworld': {
-        const gtwIdentity = gatewayIdentity();
-        const _userIdentity = userIdentity(userId);
+        const gtwIdentity = getAgentIdentity();
+        const userIdentity = getUserIdentity(userId);
 
-        const gwAgent = await makeAgent({fetch, identity: gtwIdentity})
-        const gwActor = createActor(CANISTER_ID, {agent: gwAgent})
-        const response = await gwActor.helloworld(_userIdentity.getPrincipal().toText(), text)
+        const gtwAgent = await makeAgent({fetch, identity: gtwIdentity})
+        const gtwActor = createActor(CANISTER_ID, {agent: gtwAgent})
+        const response = await gtwActor.helloworld(userIdentity.getPrincipal().toText(), text)
         
         const result = "Call with gateway identity, pass user principal as parameter, caller is gatway, get user from parameters.\n\n" + response;
         ctx.reply(result);
