@@ -31,8 +31,9 @@ bot.on(message('text'), async ctx => {
   if (text && text.startsWith('/')) {
     const [cmd, ...args] = text.split(' ');
     // Ensure wallet address
-    const createWalletCmds = ['/listre', '/createre', '/sendre', '/grabre', '/balance']
-    if (createWalletCmds.includes(cmd) && !hasUserIdentity(userId)) {
+    const walletCmds = ['/balance', '/address', '/transfer']
+    const reCmds = ['/listre', '/createre', '/sendre', '/grabre']
+    if (walletCmds.includes(cmd) || reCmds.includes(cmd) && !hasUserIdentity(userId)) {
       const principal = userIdentity(userId).getPrincipal().toText()
       ctx.reply(`Wallet address: ${principal}`)
       return 
@@ -41,12 +42,10 @@ bot.on(message('text'), async ctx => {
     let agentIdentity: Ed25519KeyIdentity | null = null;
     let _userIdentity: Ed25519KeyIdentity | null = null;
     let serviceActor: ActorSubclass<_SERVICE> | null = null;
-    if (createWalletCmds.includes(cmd)) {
-      if (cmd !== '/balance') {
-        agentIdentity = gatewayIdentity()
-        _userIdentity = userIdentity(userId)
-        serviceActor = createActor(CANISTER_ID, {agent: await makeAgent({fetch, identity: agentIdentity})})
-      }
+    if (walletCmds.includes(cmd)) {
+      agentIdentity = gatewayIdentity()
+      _userIdentity = userIdentity(userId)
+      serviceActor = createActor(CANISTER_ID, {agent: await makeAgent({fetch, identity: agentIdentity})})
     }
     // Process command
     switch (cmd) {
@@ -56,10 +55,11 @@ bot.on(message('text'), async ctx => {
       case '/help':
         ctx.reply('Here are the available commands:\n/start - Start the bot\n/help - Show this help message')
         break;
+      // wallet commands
       case '/listre':
         // call re_app list_re
         break;
-      case '/createre':
+      case '/createre': {
         if (args.length !== 2) {
           ctx.reply(`Invalid input: ${text}`)
           return
@@ -75,7 +75,7 @@ bot.on(message('text'), async ctx => {
           ctx.reply(`Invalid symbol: ${args[0]}`)
           return
         }
-        const ret1 = await icrc1Transfer(token, userId, BigInt(args[1]))
+        const ret1 = await icrc1Transfer(token, userId, BigInt(args[1]), Principal.fromText(CANISTER_ID))
         if ('Err' in ret1) {
           ctx.reply(`Transfer error: ${ret1['Err']}`)
           return
@@ -88,6 +88,7 @@ bot.on(message('text'), async ctx => {
         const ret2 = await serviceActor.create_red_envelope(re)
         ctx.reply(ret2)
         break;
+      }
       case '/sendre':
         if (args.length !== 1) {
           ctx.reply(`Invalid input: ${text}`)
@@ -117,6 +118,11 @@ bot.on(message('text'), async ctx => {
         }
         // TODO: call re_app revoke_re
         break;
+      // wallet commands
+      case '/address':
+        const address = userIdentity(userId).getPrincipal().toText()
+        ctx.reply(`Wallet address: ${address}`)
+        break
       case '/balance':
         const tokens = await getTokens(await createPool());
         const balances = await Promise.all(tokens.map(async (token) => ({
@@ -124,6 +130,31 @@ bot.on(message('text'), async ctx => {
           balance: await icrc1BalanceOf(token, userId),
         })));
         ctx.reply(JSON.stringify(balances))
+        break
+      case '/transfer': {
+        if (args.length !== 3) {
+          ctx.reply(`Invalid input: ${text}`)
+          return
+        }
+        try {
+          typeof BigInt(args[1]) === 'bigint'
+        } catch (error) {
+          ctx.reply(`Invalid amount: ${args[1]}`)
+          return
+        }
+        const token = await getTokenBySymbol(await createPool(), args[0])
+        if (!token) {
+          ctx.reply(`Invalid symbol: ${args[0]}`)
+          return
+        }
+        const result = await icrc1Transfer(token, userId, BigInt(args[1]), Principal.fromText(args[2]))
+        if ('Err' in result) {
+          ctx.reply(`Transfer error: ${ret['Err']}`)
+        } else {
+          ctx.reply(`Transfer ${args[1]} ${args[0]} to ${args[2]}`)
+        }
+        break
+      }
       default:
         ctx.reply('Invalid command. Type /help to see the available commands.')
     }

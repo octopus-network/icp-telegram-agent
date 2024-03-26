@@ -29,10 +29,10 @@ export async function icrc1BalanceOf(token: Token, userid: number): Promise<bigi
   return actor.icrc1_balance_of(account)
 }
 
-export async function icrc1Transfer(token: Token, userid: number, amount: Tokens): Promise<TransferResult> {
+export async function icrc1Transfer(token: Token, userid: number, amount: Tokens, to: Principal): Promise<TransferResult> {
   const transferArg: TransferArg = {
     from_subaccount: [],
-    to: { owner: Principal.fromText(token.canister), subaccount: [] },
+    to: { owner: to, subaccount: [] },
     amount,
     fee: [],
     memo: [],
