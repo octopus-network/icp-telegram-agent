@@ -1,5 +1,5 @@
 import { Telegraf } from "telegraf";
-import { message } from 'telegraf/filters';
+import { message, callbackQuery } from 'telegraf/filters';
 import { Principal } from '@dfinity/principal';
 import { Ed25519KeyIdentity } from "@dfinity/identity";
 import type { ActorSubclass } from "@dfinity/agent";
@@ -7,6 +7,7 @@ import type { ActorSubclass } from "@dfinity/agent";
 import { createActor } from './declarations/rbot_backend';
 import { RedEnvelope } from "./declarations/rbot_backend/rbot_backend.did";
 import { _SERVICE } from "./declarations/rbot_backend/rbot_backend.did";
+import * as C from './constants'
 import { makeAgent } from '../../utils'
 import { getAgentIdentity, getUserIdentity, delegateIdentity, hasUserIdentity } from '../../identity'
 import { createPool, getTokens, getTokenBySymbol } from '../../tokens'
@@ -25,6 +26,7 @@ const bot = new Telegraf(BOT_TOKEN);
 
 bot.on(message('text'), async ctx => {
   ctx.telegram.webhookReply = true
+  const chatId = ctx.message.chat.id
   const userId = ctx.message.from.id;
   const text = ctx.message.text
 
@@ -36,7 +38,7 @@ bot.on(message('text'), async ctx => {
     if (walletCmds.includes(cmd) || reCmds.includes(cmd) && !hasUserIdentity(userId)) {
       const principal = getUserIdentity(userId).getPrincipal().toText()
       ctx.reply(`Wallet address: ${principal}`)
-      return 
+      return
     }
     // Init identity & actor
     let agentIdentity: Ed25519KeyIdentity | null = null;
@@ -45,15 +47,21 @@ bot.on(message('text'), async ctx => {
     if (walletCmds.includes(cmd)) {
       agentIdentity = getAgentIdentity()
       userIdentity = getUserIdentity(userId)
-      serviceActor = createActor(CANISTER_ID, {agent: await makeAgent({fetch, identity: agentIdentity})})
+      serviceActor = createActor(CANISTER_ID, { agent: await makeAgent({ fetch, identity: agentIdentity }) })
     }
     // Process command
     switch (cmd) {
       case '/start':
-        ctx.reply('Welcome to rbot!')
+        if (chatId > 0) {
+          ctx.replyWithHTML(C.RBOT_START_IN_PRIVATE_MESSAGE, { reply_markup: C.RBOT_START_IN_PRIVATE_KEYBOARD })
+        } else if (chatId < 0) {
+          ctx.replyWithHTML(C.RBOT_START_IN_GROUP_MESSAGE, { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
+        } else {
+          ctx.reply('Welcome to rbot!')
+        }
         break;
       case '/help':
-        ctx.reply('Here are the available commands:\n/start - Start the bot\n/help - Show this help message')
+        ctx.replyWithHTML(C.RBOT_HELP_MESSAGE)
         break;
       // wallet commands
       case '/listre':
@@ -81,12 +89,13 @@ bot.on(message('text'), async ctx => {
           return
         }
         // TODO: call re_app create_re
-        const re : RedEnvelope = {
-          token_id: Principal.fromText(token.canister),
-          owner: userIdentity!.getPrincipal(),
-        }
-        const ret2 = await serviceActor?.create_red_envelope(re)
-        ctx.reply(ret2)
+        ctx.reply(`call re_app create_re`)
+        // const re: RedEnvelope = {
+        //   token_id: Principal.fromText(token.canister),
+        //   owner: userIdentity!.getPrincipal(),
+        // }
+        // const ret2 = await serviceActor?.create_red_envelope(re)
+        // ctx.reply(ret2)
         break;
       }
       case '/sendre':
@@ -95,6 +104,7 @@ bot.on(message('text'), async ctx => {
           return
         }
         // TODO: call re_app send_re
+        ctx.reply(`call re_app send_re`)
         break;
       case '/grabre':
         if (args.length !== 1) {
@@ -108,8 +118,9 @@ bot.on(message('text'), async ctx => {
           return
         }
         // TODO: call re_app grab_re
-        const ret = await serviceActor?.open_red_envelope(BigInt(args[0]), userIdentity!.getPrincipal())
-        ctx.reply(ret)
+        ctx.reply(`call re_app grab_re`)
+        // const ret = await serviceActor?.open_red_envelope(BigInt(args[0]), userIdentity!.getPrincipal())
+        // ctx.reply(ret)
         break;
       case '/revokere':
         if (args.length !== 1) {
@@ -117,6 +128,7 @@ bot.on(message('text'), async ctx => {
           return
         }
         // TODO: call re_app revoke_re
+        ctx.reply(`call re_app revoke_re`)
         break;
       // wallet commands
       case '/address':
@@ -129,7 +141,11 @@ bot.on(message('text'), async ctx => {
           symbol: token.symbol,
           balance: await icrc1BalanceOf(token, userId),
         })));
-        ctx.reply(JSON.stringify(balances))
+        let markdownTable = "| Token | Amount |\n| --- | --- |\n";
+        for (const balance of balances) {
+          markdownTable += `| ${balance.symbol} | ${balance.balance} |\n`;
+        }
+        ctx.replyWithMarkdownV2("```"+markdownTable+"```")
         break
       case '/transfer': {
         if (args.length !== 3) {
@@ -163,4 +179,40 @@ bot.on(message('text'), async ctx => {
   }
 });
 
-export const callback = bot.webhookCallback(WEBHOOK_PATH, {secretToken: SECRET_TOKEN})
+bot.on(callbackQuery("data"), async ctx => {
+  const data = ctx.callbackQuery.data
+  const userId = ctx.callbackQuery.from.id
+  switch (data) {
+    case 'showAddress':
+      const address = getUserIdentity(userId).getPrincipal().toText()
+      ctx.reply(`Wallet address: ${address}`)
+      break;
+    case 'showBalance':
+      const tokens = await getTokens(await createPool());
+      const balances = await Promise.all(tokens.map(async (token) => ({
+        symbol: token.symbol,
+        balance: await icrc1BalanceOf(token, userId),
+      })));
+      let markdownTable = "| Token | Amount |\n| --- | --- |\n";
+      for (const balance of balances) {
+        markdownTable += `| ${balance.symbol} | ${balance.balance} |\n`;
+      }
+      ctx.replyWithMarkdownV2("```"+markdownTable+"```")
+      break;
+    case 'showHowToTransfer':
+      ctx.reply(C.RBOT_HOW_TO_TRANSFER_MESSAGE)
+      break;
+    case 'showHowToCreateARedEnvelope':
+      ctx.reply(C.RBOT_HOW_TO_CREATE_RED_ENVELOPE)
+      break;
+    case 'showRedEnvelopesYouCreated':
+      break; 
+    case 'showCommandList':
+      ctx.replyWithHTML(C.RBOT_HELP_MESSAGE)
+      break;
+    default:
+      break;
+  }
+})
+
+export const callback = bot.webhookCallback(WEBHOOK_PATH, { secretToken: SECRET_TOKEN })

@@ -42,19 +42,19 @@ gcloud functions deploy rbot \
   --entry-point=rbot \
   --trigger-http \
   --allow-unauthenticated \
-  --set-env-vars DEBUG=telegraf:* \
+  --set-env-vars DEBUG="telegraf:*" \
   --set-env-vars DFX_NETWORK=mainet \
-  --set-env-vars RBOT_CANISTER_ID=xxxxx-xxxxx-xxxxx-xxxxx-xxx \
+  --set-env-vars RBOT_CANISTER_ID=pqtoi-6iaaa-aaaal-ad7rq-cai \
   --set-env-vars RBOT_WEBHOOK_PATH=/ \
-  --set-secrets  RBOT_BOT_TOKEN=projects/398338012986/secrets/socialfi-agent-rbot-bot-token:1 \
-  --set-secrets  RBOT_SECRET_TOKEN=projects/398338012986/secrets/socialfi-agent-rbot-secret-token:1 \
-  --set-env-vars DB_INSTANCE_CONNECTION_NAME=octopus-dev-309403:asia-east1:octopus \
+  --set-secrets  RBOT_BOT_TOKEN=projects/683968576218/secrets/socialfi-agent-rbot-bot-token:1 \
+  --set-secrets  RBOT_SECRET_TOKEN=projects/683968576218/secrets/socialfi-agent-rbot-secret-token:1 \
+  --set-env-vars DB_INSTANCE_CONNECTION_NAME=bigdata-329111:us-central1:octopus \
   --set-env-vars DB_NAME=socialfi-agent \
   --set-env-vars DB_USER=socialfi-agent \
-  --set-secrets  DB_PASS=projects/398338012986/secrets/socialfi-agent-db-password:1
+  --set-secrets  DB_PASS=projects/683968576218/secrets/socialfi-agent-db-password:1 \
+  --service-account functions@bigdata-329111.iam.gserviceaccount.com
 
 ```
-
 
 
 ## Hello World Template
