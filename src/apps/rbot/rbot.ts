@@ -41,15 +41,15 @@ bot.on(message('text'), async ctx => {
       ctx.reply(`Wallet address: ${principal}`)
       return
     }
-    // Init identity & actor
-    let agentIdentity: Ed25519KeyIdentity | null = null;
-    let userIdentity: Ed25519KeyIdentity | null = null;
-    let serviceActor: ActorSubclass<_SERVICE> | null = null;
-    if (walletCmds.includes(cmd)) {
-      agentIdentity = getAgentIdentity()
-      userIdentity = getUserIdentity(userId)
-      serviceActor = createActor(CANISTER_ID, { agent: await makeAgent({ fetch, identity: agentIdentity }) })
-    }
+    // // Init identity & actor
+    // let agentIdentity: Ed25519KeyIdentity | null = null;
+    // let userIdentity: Ed25519KeyIdentity | null = null;
+    // let serviceActor: ActorSubclass<_SERVICE> | null = null;
+    // if (walletCmds.includes(cmd)) {
+    //   agentIdentity = getAgentIdentity()
+    //   userIdentity = getUserIdentity(userId)
+    //   serviceActor = createActor(CANISTER_ID, { agent: await makeAgent({ fetch, identity: agentIdentity }) })
+    // }
     // Process command
     switch (cmd) {
       case '/start':
@@ -68,20 +68,25 @@ bot.on(message('text'), async ctx => {
       case '/listre':
         // call re_app list_re
         break;
-      case '/createre': {
-        if (args.length !== 2) {
-          ctx.reply(`Invalid input: ${text}`)
+      case '/create': {
+        if (args.length !== 3) {
+          ctx.reply('Invalid input\n\n/create [Symbol] [Amout] [Count]')
           return
         }
         try {
           typeof BigInt(args[1]) === 'bigint'
         } catch (error) {
-          ctx.reply(`Invalid amount: ${args[1]}`)
+          ctx.reply('Invalid [Amout]\n/create [Symbol] [Amout] [Count]')
+          return
+        }
+        const count = parseInt(args[2], 10);
+        if (isNaN(count) || String(count) !== args[2]) {
+          ctx.reply('Invalid [Count]\n/create [Symbol] [Amout] [Count]')
           return
         }
         const token = await getTokenBySymbol(await createPool(), args[0])
         if (!token) {
-          ctx.reply(`Invalid symbol: ${args[0]}`)
+          ctx.reply('Invalid [Symbol]\n/create [Symbol] [Amout] [Count]')
           return
         }
         const ret1 = await icrc1Transfer(token, userId, BigInt(args[1]), Principal.fromText(CANISTER_ID))
@@ -89,14 +94,28 @@ bot.on(message('text'), async ctx => {
           ctx.reply(`Transfer error: ${ret1['Err']}`)
           return
         }
-        // TODO: call re_app create_re
-        ctx.reply(`call re_app create_re`)
-        // const re: RedEnvelope = {
-        //   token_id: Principal.fromText(token.canister),
-        //   owner: userIdentity!.getPrincipal(),
-        // }
-        // const ret2 = await serviceActor?.create_red_envelope(re)
-        // ctx.reply(ret2)
+
+        const agentIdentity = getAgentIdentity()
+        const userIdentity = getUserIdentity(userId)
+        const serviceActor = createActor(CANISTER_ID, { agent: await makeAgent({ fetch, identity: agentIdentity }) })
+        const re: RedEnvelope = {
+          num: count,
+          status: 0,
+          participants: [],
+          token_id: Principal.fromText(token.canister),
+          owner: userIdentity.getPrincipal(),
+          memo: 'test memo',
+          is_random: true,
+          amount: BigInt(args[1]),
+          expires_at:[]
+        }
+        const ret2 = await serviceActor.create_red_envelope(re)
+        console.log(ret2)
+        if ('Err' in ret2) {
+          ctx.reply(`Create red envelope error: ${ret2['Err']}`)
+        } else {
+          ctx.reply(`Red envelope id: ${ret2['Ok']}`)
+        }
         break;
       }
       case '/sendre':
