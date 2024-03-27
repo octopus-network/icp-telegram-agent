@@ -65,9 +65,14 @@ bot.on(message('text'), async ctx => {
         ctx.replyWithHTML(C.RBOT_HELP_MESSAGE)
         break;
       // wallet commands
-      case '/listre':
-        // call re_app list_re
+      case '/icreated': {
+        const agentIdentity = getAgentIdentity()
+        const userIdentity = getUserIdentity(userId)
+        const serviceActor = createActor(CANISTER_ID, { agent: await makeAgent({ fetch, identity: agentIdentity }) })
+        const ret = await serviceActor.get_rids_by_owner(userIdentity.getPrincipal())
+        ctx.reply(`Red envelopes: ${ret.map((v) => v.toString()).join(', ')}`)
         break;
+      }
       case '/create': {
         if (args.length !== 3) {
           ctx.reply('Invalid input\n\n/create [Symbol] [Amout] [Count]')
