@@ -44,6 +44,7 @@ export const idlFactory = ({ IDL }) => {
     'is_token_in_white_list' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'open_red_envelope' : IDL.Func([IDL.Nat, IDL.Principal], [Result_1], []),
     'remove_token_from_white_list' : IDL.Func([IDL.Principal], [Result], []),
+    'revoke_red_envelope' : IDL.Func([IDL.Nat], [Result_1], []),
     'set_admin_acc' : IDL.Func([IDL.Principal], [Result], []),
     'set_need_transfer_from_status' : IDL.Func([IDL.Bool], [Result], []),
     'set_receive_max_number_of_each' : IDL.Func([IDL.Nat], [Result], []),

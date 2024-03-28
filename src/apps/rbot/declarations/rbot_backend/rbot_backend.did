@@ -27,6 +27,7 @@ service : (principal) -> {
   is_token_in_white_list : (principal) -> (bool) query;
   open_red_envelope : (nat, principal) -> (Result_1);
   remove_token_from_white_list : (principal) -> (Result);
+  revoke_red_envelope : (nat) -> (Result_1);
   set_admin_acc : (principal) -> (Result);
   set_need_transfer_from_status : (bool) -> (Result);
   set_receive_max_number_of_each : (nat) -> (Result);

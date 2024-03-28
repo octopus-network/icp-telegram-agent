@@ -21,14 +21,14 @@ How to create and send a red envelope in a group?
 == STEP 1. Deposit cryptocurrencies to your wallet address.
 
 == STEP 2. Create a red envelope.
-/create [Symbol] [Amout] [Message]
-<i>e.g., /create BTC 0.1 Good luck to you all!</i>
+/create [Symbol] [Amout] [Count]
+<i>e.g., /create BTC 0.1 5</i>
 <u>It must be done in this private chat.</u>
 
 == SETP 3. Add me to your group.
 
 == STEP 4. Ask me to show the red envelope that your created.
-/redenvelope [RedEnvelopeID]        
+/redenvelope [RedEnvelopeID]
 <i>e.g., /redenvelope 1003</i>
 <u>It must be done in your group chat.</u>
 `
@@ -68,9 +68,9 @@ Show your wallet balance.
 Transfer cryptocurrencies from your wallet to any address.
 <i>e.g., /transfer BTC 0.1 XXXXXXXXXXXXXXXX</i>
 
-/create [Symbol] [Amout] [Message]
+/create [Symbol] [Amout] [Count]
 Create an red envelope.
-<i>e.g., /create BTC 0.1 Good luck to you all!</i>
+<i>e.g., /create BTC 0.1 5</i>
 
 /icreated
 Show all red envelopes that you created.
@@ -90,6 +90,6 @@ Show a red envelope in a group.
 
 export const RBOT_HOW_TO_TRANSFER_MESSAGE = 'Type the follwing command to transfer:\n\n/transfer [Symbol] [Amount] [Address]\ne.g., /transfer BTC 0.3 xxxxxxxxxxxxxxxx'
 
-export const RBOT_HOW_TO_CREATE_RED_ENVELOPE = 'Type the follwing command to create a red envelope:\n\n/create [Symbol] [Amount] [Message]\ne.g., /create BTC 0.3 Enjoy my first red envelope!'
+export const RBOT_HOW_TO_CREATE_RED_ENVELOPE = 'Type the follwing command to create a red envelope:\n\n/create [Symbol] [Amount] [Count]\ne.g., /create BTC 0.3 7'
 
 

@@ -1,5 +1,3 @@
-import { Telegraf } from "telegraf";
-import { message } from 'telegraf/filters';
 import type { ActorSubclass } from "@dfinity/agent";
 import { Principal } from '@dfinity/principal';
 import { createActor } from './declarations/icrc1_ledger_canister';

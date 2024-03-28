@@ -1,7 +1,6 @@
 import { Telegraf } from "telegraf";
 import { message, callbackQuery } from 'telegraf/filters';
 import { Principal } from '@dfinity/principal';
-import { Ed25519KeyIdentity } from "@dfinity/identity";
 import type { ActorSubclass } from "@dfinity/agent";
 import { table, getBorderCharacters } from "table";
 
@@ -10,8 +9,8 @@ import { RedEnvelope } from "./declarations/rbot_backend/rbot_backend.did";
 import { _SERVICE } from "./declarations/rbot_backend/rbot_backend.did";
 import * as C from './constants'
 import { makeAgent } from '../../utils'
-import { getAgentIdentity, getUserIdentity, delegateIdentity, hasUserIdentity } from '../../identity'
-import { createPool, getTokens, getTokenBySymbol } from '../../tokens'
+import { getAgentIdentity, getUserIdentity, hasUserIdentity } from '../../identity'
+import { createPool, getTokens, getTokenBySymbol, getTokenBycanister } from '../../tokens'
 import { icrc1BalanceOf, icrc1Transfer } from "../ledger/ledger";
 
 if (process.env.NODE_ENV !== 'production') {
@@ -41,15 +40,6 @@ bot.on(message('text'), async ctx => {
       ctx.reply(`Wallet address: ${principal}`)
       return
     }
-    // // Init identity & actor
-    // let agentIdentity: Ed25519KeyIdentity | null = null;
-    // let userIdentity: Ed25519KeyIdentity | null = null;
-    // let serviceActor: ActorSubclass<_SERVICE> | null = null;
-    // if (walletCmds.includes(cmd)) {
-    //   agentIdentity = getAgentIdentity()
-    //   userIdentity = getUserIdentity(userId)
-    //   serviceActor = createActor(CANISTER_ID, { agent: await makeAgent({ fetch, identity: agentIdentity }) })
-    // }
     // Process command
     switch (cmd) {
       case '/start':
@@ -64,66 +54,17 @@ bot.on(message('text'), async ctx => {
       case '/help':
         ctx.replyWithHTML(C.RBOT_HELP_MESSAGE)
         break;
-      // wallet commands
-      case '/icreated': {
-        const agentIdentity = getAgentIdentity()
-        const userIdentity = getUserIdentity(userId)
-        const serviceActor = createActor(CANISTER_ID, { agent: await makeAgent({ fetch, identity: agentIdentity }) })
-        const ret = await serviceActor.get_rids_by_owner(userIdentity.getPrincipal())
-        ctx.reply(`Red envelopes: ${ret.map((v) => v.toString()).join(', ')}`)
+      // reapp commands
+      case '/icreated':
+        ctx.reply(await listRedEnvelope(userId))
         break;
-      }
-      case '/create': {
-        if (args.length !== 3) {
-          ctx.reply('Invalid input\n\n/create [Symbol] [Amout] [Count]')
-          return
-        }
-        try {
-          typeof BigInt(args[1]) === 'bigint'
-        } catch (error) {
-          ctx.reply('Invalid [Amout]\n/create [Symbol] [Amout] [Count]')
-          return
-        }
-        const count = parseInt(args[2], 10);
-        if (isNaN(count) || String(count) !== args[2]) {
-          ctx.reply('Invalid [Count]\n/create [Symbol] [Amout] [Count]')
-          return
-        }
-        const token = await getTokenBySymbol(await createPool(), args[0])
-        if (!token) {
-          ctx.reply('Invalid [Symbol]\n/create [Symbol] [Amout] [Count]')
-          return
-        }
-        const ret1 = await icrc1Transfer(token, userId, BigInt(args[1]), Principal.fromText(CANISTER_ID))
-        if ('Err' in ret1) {
-          ctx.reply(`Transfer error: ${ret1['Err']}`)
-          return
-        }
-
-        const agentIdentity = getAgentIdentity()
-        const userIdentity = getUserIdentity(userId)
-        const serviceActor = createActor(CANISTER_ID, { agent: await makeAgent({ fetch, identity: agentIdentity }) })
-        const re: RedEnvelope = {
-          num: count,
-          status: 0,
-          participants: [],
-          token_id: Principal.fromText(token.canister),
-          owner: userIdentity.getPrincipal(),
-          memo: 'test memo',
-          is_random: true,
-          amount: BigInt(args[1]),
-          expires_at:[]
-        }
-        const ret2 = await serviceActor.create_red_envelope(re)
-        console.log(ret2)
-        if ('Err' in ret2) {
-          ctx.reply(`Create red envelope error: ${ret2['Err']}`)
-        } else {
-          ctx.reply(`Red envelope id: ${ret2['Ok']}`)
-        }
+      case '/redenvelope':
+        ctx.replyWithHTML(await showRedEnvelope(userId, args))
         break;
-      }
-      case '/sendre':
+      case '/create':
+        ctx.reply(await createRedEnvelope(userId, args))
+        break;
+      case '/send':
         if (args.length !== 1) {
           ctx.reply(`Invalid input: ${text}`)
           return
@@ -131,70 +72,21 @@ bot.on(message('text'), async ctx => {
         // TODO: call re_app send_re
         ctx.reply(`call re_app send_re`)
         break;
-      case '/grabre':
-        if (args.length !== 1) {
-          ctx.reply(`Invalid input: ${text}`)
-          return
-        }
-        try {
-          typeof BigInt(args[0]) === 'bigint'
-        } catch (error) {
-          ctx.reply(`Invalid red envelope: ${args[0]}`)
-          return
-        }
-        // TODO: call re_app grab_re
-        ctx.reply(`call re_app grab_re`)
-        // const ret = await serviceActor?.open_red_envelope(BigInt(args[0]), userIdentity!.getPrincipal())
-        // ctx.reply(ret)
+      case '/grab':
+        ctx.reply(await grabRedEnvelope(userId, args))
         break;
-      case '/revokere':
-        if (args.length !== 1) {
-          ctx.reply(`Invalid input: ${text}`)
-          return
-        }
-        // TODO: call re_app revoke_re
-        ctx.reply(`call re_app revoke_re`)
+      case '/revoke':
+        ctx.reply(await revokeRedEnvelope(userId, args))
         break;
       // wallet commands
       case '/address':
-        const address = getUserIdentity(userId).getPrincipal().toText()
-        ctx.reply(`Wallet address: ${address}`)
+        ctx.reply(await getAddress(userId))
         break
       case '/balance':
-        const tokens = await getTokens(await createPool());
-        const balances = await Promise.all(tokens.map(async (token) => ([
-          token.symbol,
-          (await icrc1BalanceOf(token, userId)).toString()
-        ])));
-        balances.unshift(['Token', 'Amount']);
-        const tableString = table(balances, {
-          singleLine: true,
-          border: getBorderCharacters('ramac')
-        })
-        ctx.replyWithHTML("<pre>" + tableString + "</pre>")
+        ctx.replyWithHTML(await getBalance(userId))
         break
       case '/transfer': {
-        if (args.length !== 3) {
-          ctx.reply(`Invalid input: ${text}`)
-          return
-        }
-        try {
-          typeof BigInt(args[1]) === 'bigint'
-        } catch (error) {
-          ctx.reply(`Invalid amount: ${args[1]}`)
-          return
-        }
-        const token = await getTokenBySymbol(await createPool(), args[0])
-        if (!token) {
-          ctx.reply(`Invalid symbol: ${args[0]}`)
-          return
-        }
-        const result = await icrc1Transfer(token, userId, BigInt(args[1]), Principal.fromText(args[2]))
-        if ('Err' in result) {
-          ctx.reply(`Transfer error: ${result['Err']}`)
-        } else {
-          ctx.reply(`Transfer ${args[1]} ${args[0]} to ${args[2]}`)
-        }
+        ctx.reply(await transferToken(userId, args))
         break
       }
       default:
@@ -210,21 +102,10 @@ bot.on(callbackQuery("data"), async ctx => {
   const userId = ctx.callbackQuery.from.id
   switch (data) {
     case 'showAddress':
-      const address = getUserIdentity(userId).getPrincipal().toText()
-      ctx.reply(`Wallet address: ${address}`)
+      ctx.reply(await getAddress(userId))
       break;
     case 'showBalance':
-      const tokens = await getTokens(await createPool());
-      const balances = await Promise.all(tokens.map(async (token) => ([
-        token.symbol,
-        (await icrc1BalanceOf(token, userId)).toString()
-      ])));
-      balances.unshift(['Token', 'Amount']);
-      const tableString = table(balances, {
-        singleLine: true,
-        border: getBorderCharacters('ramac')
-      })
-      ctx.replyWithHTML("<pre>" + tableString + "</pre>")
+      ctx.replyWithHTML(await getBalance(userId))
       break;
     case 'showHowToTransfer':
       ctx.reply(C.RBOT_HOW_TO_TRANSFER_MESSAGE)
@@ -233,6 +114,7 @@ bot.on(callbackQuery("data"), async ctx => {
       ctx.reply(C.RBOT_HOW_TO_CREATE_RED_ENVELOPE)
       break;
     case 'showRedEnvelopesYouCreated':
+      ctx.reply(await listRedEnvelope(userId))
       break;
     case 'showCommandList':
       ctx.replyWithHTML(C.RBOT_HELP_MESSAGE)
@@ -243,3 +125,188 @@ bot.on(callbackQuery("data"), async ctx => {
 })
 
 export const callback = bot.webhookCallback(WEBHOOK_PATH, { secretToken: SECRET_TOKEN })
+
+
+async function getAgentActor(): Promise<ActorSubclass<_SERVICE>> {
+  const identity = getAgentIdentity();
+  const agent = await makeAgent({ fetch, identity })
+  return createActor(CANISTER_ID, { agent })
+}
+
+async function createRedEnvelope(userId: number, args: string[]) : Promise<string> {
+  if (args.length !== 3) {
+    return 'Invalid input\n\n/create [Symbol] [Amout] [Count]'
+  }
+  try {
+    typeof BigInt(args[1]) === 'bigint'
+  } catch (error) {
+    return 'Invalid [Amout]\n/create [Symbol] [Amout] [Count]'
+  }
+  const count = parseInt(args[2], 10);
+  if (isNaN(count) || String(count) !== args[2]) {
+    return 'Invalid [Count]\n/create [Symbol] [Amout] [Count]'
+  }
+  const token = await getTokenBySymbol(await createPool(), args[0])
+  if (!token) {
+    return 'Invalid [Symbol]\n/create [Symbol] [Amout] [Count]'
+  }
+  const amout = BigInt(args[1])
+  if (amout > token.re_maximum || amout < token.re_minimum) {
+    return 'Invalid [Symbol]\n/create [Symbol] [Amout] [Count]'
+  }
+
+  // TODO: Approve to agent, transfer_from to re_app & fee_address
+  const fee_amount = amout * BigInt(token.fee_ratio) / 100n
+  const re_amount = amout - fee_amount
+  let ret = await icrc1Transfer(token, userId, re_amount, Principal.fromText(CANISTER_ID))
+  if ('Err' in ret) {
+    return `Transfer error: ${ret['Err']}`
+  }
+  ret = await icrc1Transfer(token, userId, fee_amount, Principal.fromText(token.fee_address))
+  if ('Err' in ret) {
+    return `Transfer error: ${ret['Err']}`
+  }
+
+  const serviceActor = await getAgentActor()
+  const re: RedEnvelope = {
+    num: count,
+    status: 0,
+    participants: [],
+    token_id: Principal.fromText(token.canister),
+    owner: getUserIdentity(userId).getPrincipal(),
+    memo: 'test memo',
+    is_random: true,
+    amount: re_amount,
+    expires_at:[]
+  }
+  const ret2 = await serviceActor.create_red_envelope(re)
+  if ('Err' in ret2) {
+    return `Create red envelope error: ${ret2['Err']}`
+  } else {
+    return `Red envelope id: ${ret2['Ok']}`
+  }
+}
+
+async function grabRedEnvelope(userId: number, args: string[]) : Promise<string> {
+  if (args.length !== 1) {
+    return '/grab [RedEnvelopeID]'
+  }
+  try {
+    typeof BigInt(args[0]) === 'bigint'
+  } catch (error) {
+    return '/grab [RedEnvelopeID]'
+  }
+
+  const userIdentity = getUserIdentity(userId)
+  const serviceActor = await getAgentActor()
+  const ret = await serviceActor.open_red_envelope(BigInt(args[0]), userIdentity.getPrincipal())
+  if ('Err' in ret) {
+    return `Grab red envelope error: ${ret['Err']}`
+  } else {
+    return `Grab amount: ${ret['Ok']}`
+  }
+}
+
+async function revokeRedEnvelope(userId: number, args: string[]) : Promise<string> {
+  if (args.length !== 1) {
+    return '/revoke [RedEnvelopeID]'
+  }
+  try {
+    typeof BigInt(args[0]) === 'bigint'
+  } catch (error) {
+    return '/revoke [RedEnvelopeID]'
+  }
+
+  const userIdentity = getUserIdentity(userId)
+  const serviceActor = await getAgentActor()
+  const ret = await serviceActor.revoke_red_envelope(BigInt(args[0]), /* TODO: userIdentity.getPrincipal()*/)
+  if ('Err' in ret) {
+    return `Revoke red envelope error: ${ret['Err']}`
+  } else {
+    return `Revoke amount: ${ret['Ok']}`
+  }
+}
+async function listRedEnvelope(userId: number) {
+  const userIdentity = getUserIdentity(userId)
+  const serviceActor = await getAgentActor()
+  const ret = await serviceActor.get_rids_by_owner(userIdentity.getPrincipal())
+  return `Red envelopes: ${ret.map((v) => v.toString()).join(', ')}`
+}
+
+async function showRedEnvelope(userId: number, args: string[]) : Promise<string> {
+  if (args.length !== 1) {
+    return '/redenvelope [RedEnvelopeID]'
+  }
+  try {
+    typeof BigInt(args[0]) === 'bigint'
+  } catch (error) {
+    return '/redenvelope [RedEnvelopeID]'
+  }
+
+  // const userIdentity = getUserIdentity(userId)
+  const serviceActor = await getAgentActor()
+  const ret = await serviceActor.get_red_envelope(BigInt(args[0]))
+  if (ret.length) {
+    const token = await getTokenBycanister(await createPool(), ret[0].token_id.toText())
+    const details = [
+      ['Token', token ? token.symbol:""],
+      ['Amount', ret[0].amount],
+      ['Count', ret[0].num],
+      ['Random', ret[0].is_random? 'Y' : 'N'],
+      ['Memo', ret[0].memo],
+      // ['Owner', ],
+      // ['participants', ]
+    ]
+    const tableString = table(details, {
+      border: getBorderCharacters('ramac'),
+    })
+    return "<pre>" + tableString + "</pre>"
+  } else {
+    return 'Red envelope does not exist'
+  }
+}
+
+async function getAddress(userId: number): Promise<string> {
+  const address = getUserIdentity(userId).getPrincipal().toText()
+  return `Wallet address:\n ${address}`
+}
+
+async function getBalance(userId: number): Promise<string> {
+  const tokens = await getTokens(await createPool());
+  const balances = await Promise.all(tokens.map(async (token) => ([
+    token.symbol,
+    (await icrc1BalanceOf(token, userId)).toString()
+  ])));
+  balances.unshift(['Token', 'Amount']);
+  const tableString = table(balances, {
+    singleLine: true,
+    border: getBorderCharacters('ramac'),
+  })
+  return "<pre>" + tableString + "</pre>"
+}
+
+async function transferToken(userId: number, args: string[]) {
+  if (args.length !== 3) {
+    return '/transfer [Symbol] [Amout] [To]'
+  }
+  try {
+    typeof BigInt(args[1]) === 'bigint'
+  } catch (error) {
+    return '/transfer [Symbol] [Amout] [To]'
+  }
+  const token = await getTokenBySymbol(await createPool(), args[0])
+  if (!token) {
+    return '/transfer [Symbol] [Amout] [To]'
+  }
+  const to = Principal.fromText(args[2])
+  if (!to._isPrincipal) {
+    return '/transfer [Symbol] [Amout] [To]'
+  }
+
+  const ret = await icrc1Transfer(token, userId, BigInt(args[1]), to)
+  if ('Err' in ret) {
+    return `Transfer error: ${ret['Err']}`
+  } else {
+    return `Transfer ${args[1]} ${args[0]} to ${args[2]}`
+  }
+}

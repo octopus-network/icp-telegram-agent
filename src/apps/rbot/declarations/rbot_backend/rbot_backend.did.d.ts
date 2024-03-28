@@ -33,6 +33,7 @@ export interface _SERVICE {
   'is_token_in_white_list' : ActorMethod<[Principal], boolean>,
   'open_red_envelope' : ActorMethod<[bigint, Principal], Result_1>,
   'remove_token_from_white_list' : ActorMethod<[Principal], Result>,
+  'revoke_red_envelope' : ActorMethod<[bigint], Result_1>,
   'set_admin_acc' : ActorMethod<[Principal], Result>,
   'set_need_transfer_from_status' : ActorMethod<[boolean], Result>,
   'set_receive_max_number_of_each' : ActorMethod<[bigint], Result>,
