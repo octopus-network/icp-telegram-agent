@@ -1,4 +1,4 @@
-import { Telegraf } from "telegraf";
+import { Telegraf, Markup } from "telegraf";
 import { message, callbackQuery } from 'telegraf/filters';
 import { Principal } from '@dfinity/principal';
 import type { ActorSubclass } from "@dfinity/agent";
@@ -76,7 +76,8 @@ bot.command('create', async ctx => {
   if (!limitChatScenario(chatId, [ChatScenario.Private])) {
     return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
   }
-  ctx.reply(await createRedEnvelope(userId, args))
+  const [message, markup] = await createRedEnvelope(userId, args)
+  ctx.reply(message, markup)
 })
 
 bot.command('icreated', async ctx => {
@@ -120,6 +121,15 @@ bot.on(message('text'), async ctx => {
   //   ctx.reply(`Wallet address: ${principal}`)
   //   return
   // }
+})
+
+bot.on(message('chat_shared'), async ctx => {
+  const chatId = ctx.message.chat_shared.chat_id
+  const requestId = ctx.message.chat_shared.request_id
+  if (chatId && requestId) {
+    const [message, markup] = await showRedEnvelope(0, [requestId.toString()])
+    ctx.telegram.sendMessage(chatId, message, { ...markup, parse_mode: 'HTML' })
+  }
 })
 
 bot.action('showAddress', async ctx => {
@@ -190,26 +200,26 @@ function limitChatScenario(chatId: number, allowed: ChatScenario[]): boolean {
   return false
 }
 
-async function createRedEnvelope(userId: number, args: string[]): Promise<string> {
+async function createRedEnvelope(userId: number, args: string[]): Promise<[string, object?]> {
   if (args.length !== 3) {
-    return 'Invalid input\n\n/create [Symbol] [Amout] [Count]'
+    return ['Invalid input\n\n/create [Symbol] [Amout] [Count]']
   }
   try {
     typeof BigInt(args[1]) === 'bigint'
   } catch (error) {
-    return 'Invalid [Amout]\n/create [Symbol] [Amout] [Count]'
+    return ['Invalid [Amout]\n/create [Symbol] [Amout] [Count]']
   }
   const count = parseInt(args[2], 10);
   if (isNaN(count) || String(count) !== args[2]) {
-    return 'Invalid [Count]\n/create [Symbol] [Amout] [Count]'
+    return ['Invalid [Count]\n/create [Symbol] [Amout] [Count]']
   }
   const token = await getTokenBySymbol(await createPool(), args[0])
   if (!token) {
-    return 'Invalid [Symbol]\n/create [Symbol] [Amout] [Count]'
+    return ['Invalid [Symbol]\n/create [Symbol] [Amout] [Count]']
   }
   const amout = BigInt(args[1])
   if (amout > token.re_maximum || amout < token.re_minimum) {
-    return `Invalid [Amout ${token.re_minimum}~${token.re_maximum }]\n/create [Symbol] [Amout] [Count]`
+    return [`Invalid [Amout ${token.re_minimum}~${token.re_maximum}]\n/create [Symbol] [Amout] [Count]`]
   }
 
   // TODO: Approve to agent, transfer_from to re_app & fee_address
@@ -217,11 +227,11 @@ async function createRedEnvelope(userId: number, args: string[]): Promise<string
   const re_amount = amout - fee_amount
   let ret = await icrc1Transfer(token, userId, re_amount, Principal.fromText(CANISTER_ID))
   if ('Err' in ret) {
-    return `Transfer error: ${ret['Err']}`
+    return [`Transfer error: ${ret['Err']}`]
   }
   ret = await icrc1Transfer(token, userId, fee_amount, Principal.fromText(token.fee_address))
   if ('Err' in ret) {
-    return `Transfer error: ${ret['Err']}`
+    return [`Transfer error: ${ret['Err']}`]
   }
 
   const serviceActor = await getAgentActor()
@@ -238,9 +248,15 @@ async function createRedEnvelope(userId: number, args: string[]): Promise<string
   }
   const ret2 = await serviceActor.create_red_envelope(re)
   if ('Err' in ret2) {
-    return `Create red envelope error: ${ret2['Err']}`
+    return [`Create red envelope error: ${ret2['Err']}`]
   } else {
-    return `Red envelope id: ${ret2['Ok']}`
+    const rid = ret2['Ok']
+    if (rid <= Number.MAX_SAFE_INTEGER && rid >= Number.MIN_SAFE_INTEGER) {
+      const requestId = Number(rid)
+      const keyboard = Markup.keyboard([Markup.button.groupRequest("Choose a Group", requestId)]).oneTime()
+      return [`Red envelope id: ${rid}`, keyboard]
+    }
+    return [`Red envelope id: ${rid}`]
   }
 }
 
