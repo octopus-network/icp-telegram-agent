@@ -1,3 +1,5 @@
+const BOT_USERNAME = process.env.RBOT_BOT_USERNAME
+
 export const RBOT_START_IN_GROUP_MESSAGE = 'Hi, I am RBot, your crypto wallet & red envelope assistant. I must stay in this group to send red envelopes that every group member can claim. Want to create a red envelope? or access your crypto wallet? I can help you do these in private chat.'
 
 export const RBOT_START_IN_GROUP_KEYBOARD = {
@@ -5,7 +7,7 @@ export const RBOT_START_IN_GROUP_KEYBOARD = {
     [
       {
         text: "Go to private chat",
-        url: "https://t.me/rBotDevBot?start=1"
+        url: `https://t.me/${BOT_USERNAME}?start=1`
       }
     ]
   ]
@@ -92,4 +94,18 @@ export const RBOT_HOW_TO_TRANSFER_MESSAGE = 'Type the follwing command to transf
 
 export const RBOT_HOW_TO_CREATE_RED_ENVELOPE = 'Type the follwing command to create a red envelope:\n\n/create [Symbol] [Amount] [Count]\ne.g., /create BTC 0.3 7'
 
-
+export const RBOT_REDENVELOPE_KEYBOARD = (rid: bigint) => {
+  return {
+    inline_keyboard: [
+      [
+        { text: "Claim", callback_data: `claimRedEnvelope_${rid.toString()}` },
+      ],
+      [
+        { text: "View log", callback_data: "showRedEnvelopeLog" }
+      ],
+      [
+        { text: "Open your wallet", url: `https://t.me/${BOT_USERNAME}?start=1` }
+      ]
+    ]
+  }
+}

@@ -44,6 +44,7 @@ gcloud functions deploy rbot \
   --allow-unauthenticated \
   --set-env-vars DEBUG="telegraf:*" \
   --set-env-vars DFX_NETWORK=mainet \
+  --set-env-vars RBOT_BOT_USERNAME=helloworld_icp_bot \
   --set-env-vars RBOT_CANISTER_ID=pqtoi-6iaaa-aaaal-ad7rq-cai \
   --set-env-vars RBOT_WEBHOOK_PATH=/ \
   --set-secrets  RBOT_BOT_TOKEN=projects/398338012986/secrets/socialfi-agent-rbot-bot-token:1 \

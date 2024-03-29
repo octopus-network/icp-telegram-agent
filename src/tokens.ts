@@ -102,3 +102,4 @@ export const deleteToken = async (pool: Knex.Knex, symbol: string) => {
 //   createTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 //   updateTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 // );
+// CREATE INDEX tokens_canister_idx ON public.tokens (canister);

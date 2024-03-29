@@ -56,36 +56,58 @@ bot.on(message('text'), async ctx => {
         break;
       // reapp commands
       case '/icreated':
+        if (!limitChatScenario(chatId, [ChatScenario.Private])) {
+          return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
+        }
         ctx.reply(await listRedEnvelope(userId))
         break;
       case '/redenvelope':
-        ctx.replyWithHTML(await showRedEnvelope(userId, args))
+        const [message, markup] = await showRedEnvelope(userId, args)
+        ctx.replyWithHTML(message, markup)
         break;
       case '/create':
+        if (!limitChatScenario(chatId, [ChatScenario.Private])) {
+          return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
+        }
         ctx.reply(await createRedEnvelope(userId, args))
         break;
-      case '/send':
-        if (args.length !== 1) {
-          ctx.reply(`Invalid input: ${text}`)
-          return
-        }
-        // TODO: call re_app send_re
-        ctx.reply(`call re_app send_re`)
-        break;
+      // case '/send':
+      //   if (args.length !== 1) {
+      //     ctx.reply(`Invalid input: ${text}`)
+      //     return
+      //   }
+      //   // TODO: call re_app send_re
+      //   ctx.reply(`call re_app send_re`)
+      //   break;
       case '/grab':
+        if (!limitChatScenario(chatId, [ChatScenario.Private, ChatScenario.InGroup])) {
+          return ctx.reply('Only allowed in group chat')
+        }
         ctx.reply(await grabRedEnvelope(userId, args))
         break;
       case '/revoke':
+        if (!limitChatScenario(chatId, [ChatScenario.Private])) {
+          return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
+        }
         ctx.reply(await revokeRedEnvelope(userId, args))
         break;
       // wallet commands
       case '/address':
+        if (!limitChatScenario(chatId, [ChatScenario.Private])) {
+          return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
+        }
         ctx.reply(await getAddress(userId))
         break
       case '/balance':
+        if (!limitChatScenario(chatId, [ChatScenario.Private])) {
+          return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
+        }
         ctx.replyWithHTML(await getBalance(userId))
         break
       case '/transfer': {
+        if (!limitChatScenario(chatId, [ChatScenario.Private])) {
+          return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
+        }
         ctx.reply(await transferToken(userId, args))
         break
       }
@@ -100,24 +122,28 @@ bot.on(message('text'), async ctx => {
 bot.on(callbackQuery("data"), async ctx => {
   const data = ctx.callbackQuery.data
   const userId = ctx.callbackQuery.from.id
-  switch (data) {
-    case 'showAddress':
+  switch (true) {
+    case data === 'showAddress':
       ctx.reply(await getAddress(userId))
       break;
-    case 'showBalance':
+    case data === 'showBalance':
       ctx.replyWithHTML(await getBalance(userId))
       break;
-    case 'showHowToTransfer':
+    case data === 'showHowToTransfer':
       ctx.reply(C.RBOT_HOW_TO_TRANSFER_MESSAGE)
       break;
-    case 'showHowToCreateARedEnvelope':
+    case data === 'showHowToCreateARedEnvelope':
       ctx.reply(C.RBOT_HOW_TO_CREATE_RED_ENVELOPE)
       break;
-    case 'showRedEnvelopesYouCreated':
+    case data === 'showRedEnvelopesYouCreated':
       ctx.reply(await listRedEnvelope(userId))
       break;
-    case 'showCommandList':
+    case data === 'showCommandList':
       ctx.replyWithHTML(C.RBOT_HELP_MESSAGE)
+      break;
+    case /^claimRedEnvelope_\d+$/.test(data):
+      const rid = data.split('_')[1];
+      ctx.reply(await grabRedEnvelope(userId, [rid]))
       break;
     default:
       break;
@@ -133,7 +159,23 @@ async function getAgentActor(): Promise<ActorSubclass<_SERVICE>> {
   return createActor(CANISTER_ID, { agent })
 }
 
-async function createRedEnvelope(userId: number, args: string[]) : Promise<string> {
+enum ChatScenario {
+  InGroup,
+  Private,
+}
+
+function limitChatScenario(chatId: number, allowed: ChatScenario[]): boolean {
+  const allowedSet = new Set(allowed);
+  if (chatId > 0 && allowedSet.has(ChatScenario.Private)) {
+    return true
+  }
+  if (chatId < 0 && allowedSet.has(ChatScenario.InGroup)) {
+    return true
+  }
+  return false
+}
+
+async function createRedEnvelope(userId: number, args: string[]): Promise<string> {
   if (args.length !== 3) {
     return 'Invalid input\n\n/create [Symbol] [Amout] [Count]'
   }
@@ -152,7 +194,7 @@ async function createRedEnvelope(userId: number, args: string[]) : Promise<strin
   }
   const amout = BigInt(args[1])
   if (amout > token.re_maximum || amout < token.re_minimum) {
-    return 'Invalid [Symbol]\n/create [Symbol] [Amout] [Count]'
+    return `Invalid [Amout ${token.re_minimum}~${token.re_maximum }]\n/create [Symbol] [Amout] [Count]`
   }
 
   // TODO: Approve to agent, transfer_from to re_app & fee_address
@@ -177,7 +219,7 @@ async function createRedEnvelope(userId: number, args: string[]) : Promise<strin
     memo: 'test memo',
     is_random: true,
     amount: re_amount,
-    expires_at:[]
+    expires_at: []
   }
   const ret2 = await serviceActor.create_red_envelope(re)
   if ('Err' in ret2) {
@@ -187,7 +229,7 @@ async function createRedEnvelope(userId: number, args: string[]) : Promise<strin
   }
 }
 
-async function grabRedEnvelope(userId: number, args: string[]) : Promise<string> {
+async function grabRedEnvelope(userId: number, args: string[]): Promise<string> {
   if (args.length !== 1) {
     return '/grab [RedEnvelopeID]'
   }
@@ -207,7 +249,7 @@ async function grabRedEnvelope(userId: number, args: string[]) : Promise<string>
   }
 }
 
-async function revokeRedEnvelope(userId: number, args: string[]) : Promise<string> {
+async function revokeRedEnvelope(userId: number, args: string[]): Promise<string> {
   if (args.length !== 1) {
     return '/revoke [RedEnvelopeID]'
   }
@@ -233,14 +275,14 @@ async function listRedEnvelope(userId: number) {
   return `Red envelopes: ${ret.map((v) => v.toString()).join(', ')}`
 }
 
-async function showRedEnvelope(userId: number, args: string[]) : Promise<string> {
+async function showRedEnvelope(userId: number, args: string[]): Promise<[string, object?]> {
   if (args.length !== 1) {
-    return '/redenvelope [RedEnvelopeID]'
+    return ['/redenvelope [RedEnvelopeID]']
   }
   try {
     typeof BigInt(args[0]) === 'bigint'
   } catch (error) {
-    return '/redenvelope [RedEnvelopeID]'
+    return ['/redenvelope [RedEnvelopeID]']
   }
 
   // const userIdentity = getUserIdentity(userId)
@@ -249,10 +291,10 @@ async function showRedEnvelope(userId: number, args: string[]) : Promise<string>
   if (ret.length) {
     const token = await getTokenBycanister(await createPool(), ret[0].token_id.toText())
     const details = [
-      ['Token', token ? token.symbol:""],
+      ['Token', token ? token.symbol : ""],
       ['Amount', ret[0].amount],
       ['Count', ret[0].num],
-      ['Random', ret[0].is_random? 'Y' : 'N'],
+      ['Random', ret[0].is_random ? 'Y' : 'N'],
       ['Memo', ret[0].memo],
       // ['Owner', ],
       // ['participants', ]
@@ -260,9 +302,10 @@ async function showRedEnvelope(userId: number, args: string[]) : Promise<string>
     const tableString = table(details, {
       border: getBorderCharacters('ramac'),
     })
-    return "<pre>" + tableString + "</pre>"
+    const markup = { reply_markup: C.RBOT_REDENVELOPE_KEYBOARD(BigInt(args[0])) }
+    return ["<pre>" + tableString + "</pre>", markup]
   } else {
-    return 'Red envelope does not exist'
+    return ['Red envelope does not exist']
   }
 }
 
