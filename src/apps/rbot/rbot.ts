@@ -253,7 +253,7 @@ async function createRedEnvelope(userId: number, args: string[]): Promise<[strin
     const rid = ret2['Ok']
     if (rid <= Number.MAX_SAFE_INTEGER && rid >= Number.MIN_SAFE_INTEGER) {
       const requestId = Number(rid)
-      const keyboard = Markup.keyboard([Markup.button.groupRequest("Choose a Group", requestId)]).oneTime()
+      const keyboard = Markup.keyboard([Markup.button.groupRequest("Choose a Group", requestId)]).oneTime().resize()
       return [`Red envelope id: ${rid}`, keyboard]
     }
     return [`Red envelope id: ${rid}`]
