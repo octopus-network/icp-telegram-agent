@@ -16,135 +16,147 @@ import { icrc1BalanceOf, icrc1Transfer } from "../ledger/ledger";
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
+// const debug = require('debug')('socialfi-agent:rbot')
 
 const CANISTER_ID = process.env.RBOT_CANISTER_ID || ""
 const BOT_TOKEN = process.env.RBOT_BOT_TOKEN || ""
 const WEBHOOK_PATH = process.env.RBOT_WEBHOOK_PATH || ""
 const SECRET_TOKEN = process.env.RBOT_SECRET_TOKEN || ""
-const BOT_USERNAME = process.env.RBOT_BOT_USERNAME
 
 const bot = new Telegraf(BOT_TOKEN);
 
-bot.on(message('text'), async ctx => {
-  ctx.telegram.webhookReply = true
+bot.command('start', ctx => {
+  if (ctx.message.chat.id > 0) {
+    ctx.replyWithHTML(C.RBOT_START_IN_PRIVATE_MESSAGE, { reply_markup: C.RBOT_START_IN_PRIVATE_KEYBOARD })
+  } else {
+    ctx.replyWithHTML(C.RBOT_START_IN_GROUP_MESSAGE, { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
+  }
+})
+
+bot.command('help', ctx => {
+  if (ctx.message.chat.id > 0) {
+    ctx.replyWithHTML(C.RBOT_HELP_IN_PRIVATE_MESSAGE)
+  } else {
+    ctx.replyWithHTML(C.RBOT_HELP_IN_GROUP_MESSAGE)
+  }
+})
+
+bot.command('address', async ctx => {
   const chatId = ctx.message.chat.id
   const userId = ctx.message.from.id;
-  const text = ctx.message.text
-
-  if (text && text.startsWith('/')) {
-    const [cmd, ...args] = text.split(' ');
-    // Ensure wallet address
-    const walletCmds = ['/balance', '/address', '/transfer']
-    const reCmds = ['/listre', '/createre', '/sendre', '/grabre']
-    if ((walletCmds.includes(cmd) || reCmds.includes(cmd)) && !hasUserIdentity(userId)) {
-      const principal = getUserIdentity(userId).getPrincipal().toText()
-      ctx.reply(`Wallet address: ${principal}`)
-      return
-    }
-    // Process command
-    switch (cmd) {
-      case '/start':
-      case `/start@${BOT_USERNAME}`:
-        if (chatId > 0) {
-          ctx.replyWithHTML(C.RBOT_START_IN_PRIVATE_MESSAGE, { reply_markup: C.RBOT_START_IN_PRIVATE_KEYBOARD })
-        } else if (chatId < 0) {
-          ctx.replyWithHTML(C.RBOT_START_IN_GROUP_MESSAGE, { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
-        } else {
-          ctx.reply('Welcome to rbot!')
-        }
-        break;
-      case '/help':
-      case `/help@${BOT_USERNAME}`:
-        if (chatId > 0) {
-          ctx.replyWithHTML(C.RBOT_HELP_IN_PRIVATE_MESSAGE)
-        } else {
-          ctx.replyWithHTML(C.RBOT_HELP_IN_GROUP_MESSAGE)
-        }
-        break;
-      // reapp commands
-      case '/icreated':
-        if (!limitChatScenario(chatId, [ChatScenario.Private])) {
-          return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
-        }
-        ctx.reply(await listRedEnvelope(userId))
-        break;
-      case '/redenvelope':
-        const [message, markup] = await showRedEnvelope(userId, args)
-        ctx.replyWithHTML(message, markup)
-        break;
-      case '/create':
-        if (!limitChatScenario(chatId, [ChatScenario.Private])) {
-          return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
-        }
-        ctx.reply(await createRedEnvelope(userId, args))
-        break;
-      // case '/grab':
-      //   if (!limitChatScenario(chatId, [ChatScenario.Private, ChatScenario.InGroup])) {
-      //     return ctx.reply('Only allowed in group chat')
-      //   }
-      //   const first_name = ctx.message.from.first_name
-      //   ctx.reply(await grabRedEnvelope(userId, first_name, args))
-      //   break;
-      case '/revoke':
-        if (!limitChatScenario(chatId, [ChatScenario.Private])) {
-          return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
-        }
-        ctx.reply(await revokeRedEnvelope(userId, args))
-        break;
-      // wallet commands
-      case '/address':
-        if (!limitChatScenario(chatId, [ChatScenario.Private])) {
-          return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
-        }
-        ctx.reply(await getAddress(userId))
-        break
-      case '/balance':
-        if (!limitChatScenario(chatId, [ChatScenario.Private])) {
-          return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
-        }
-        ctx.replyWithHTML(await getBalance(userId))
-        break
-      case '/transfer': {
-        if (!limitChatScenario(chatId, [ChatScenario.Private])) {
-          return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
-        }
-        ctx.reply(await transferToken(userId, args))
-        break
-      }
-      default:
-        ctx.reply('Invalid command. Type /help to see the available commands.')
-    }
-  } else {
-    ctx.reply(ctx.message.text)
+  if (!limitChatScenario(chatId, [ChatScenario.Private])) {
+    return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
   }
-});
+  ctx.reply(await getAddress(userId))
+})
+
+bot.command('balance', async ctx => {
+  const chatId = ctx.message.chat.id
+  const userId = ctx.message.from.id;
+  if (!limitChatScenario(chatId, [ChatScenario.Private])) {
+    return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
+  }
+  ctx.replyWithHTML(await getBalance(userId))
+})
+
+bot.command('transfer', async ctx => {
+  const chatId = ctx.message.chat.id
+  const userId = ctx.message.from.id;
+  const [_, ...args] = ctx.message.text.split(' ');
+  if (!limitChatScenario(chatId, [ChatScenario.Private])) {
+    return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
+  }
+  ctx.reply(await transferToken(userId, args))
+})
+
+bot.command('create', async ctx => {
+  const chatId = ctx.message.chat.id
+  const userId = ctx.message.from.id;
+  const [_, ...args] = ctx.message.text.split(' ');
+  if (!limitChatScenario(chatId, [ChatScenario.Private])) {
+    return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
+  }
+  ctx.reply(await createRedEnvelope(userId, args))
+})
+
+bot.command('icreated', async ctx => {
+  const chatId = ctx.message.chat.id
+  const userId = ctx.message.from.id;
+  if (!limitChatScenario(chatId, [ChatScenario.Private])) {
+    return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
+  }
+  ctx.reply(await listRedEnvelope(userId))
+})
+
+bot.command('redenvelope', async ctx => {
+  const userId = ctx.message.from.id;
+  const [_, ...args] = ctx.message.text.split(' ');
+  const [message, markup] = await showRedEnvelope(userId, args)
+  ctx.replyWithHTML(message, markup)
+})
+
+bot.command('revoke', async ctx => {
+  const chatId = ctx.message.chat.id
+  const userId = ctx.message.from.id;
+  const [_, ...args] = ctx.message.text.split(' ');
+  if (!limitChatScenario(chatId, [ChatScenario.Private])) {
+    return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
+  }
+  ctx.reply(await revokeRedEnvelope(userId, args))
+})
+
+bot.on(message('text'), async ctx => {
+  if (ctx.message.chat.id > 0) {
+    ctx.replyWithHTML(C.RBOT_HELP_IN_PRIVATE_MESSAGE)
+  } else {
+    ctx.replyWithHTML(C.RBOT_HELP_IN_GROUP_MESSAGE)
+  }
+  // const userId = ctx.message.from.id;
+  // const [cmd, ...args] = ctx.message.text.split(' ');
+  // const walletCmds = ['/balance', '/address', '/transfer']
+  // const reCmds = ['/create', '/icreated', '/redenvelope', '/revoke']
+  // if ((walletCmds.includes(cmd) || reCmds.includes(cmd)) && !hasUserIdentity(userId)) {
+  //   const principal = getUserIdentity(userId).getPrincipal().toText()
+  //   ctx.reply(`Wallet address: ${principal}`)
+  //   return
+  // }
+})
+
+bot.action('showAddress', async ctx => {
+  const userId = ctx.callbackQuery.from.id
+  ctx.reply(await getAddress(userId))
+})
+
+bot.action('showBalance', async ctx => {
+  const userId = ctx.callbackQuery.from.id
+  ctx.replyWithHTML(await getBalance(userId))
+})
+
+bot.action('showHowToTransfer', ctx => {
+  ctx.reply(C.RBOT_HOW_TO_TRANSFER_MESSAGE)
+})
+
+bot.action('showHowToCreateARedEnvelope', ctx => {
+  ctx.reply(C.RBOT_HOW_TO_CREATE_RED_ENVELOPE)
+})
+
+bot.action('showRedEnvelopesYouCreated', async ctx => {
+  const userId = ctx.callbackQuery.from.id
+  ctx.reply(await listRedEnvelope(userId))
+})
+
+bot.action('showCommandList', ctx => {
+  ctx.replyWithHTML(C.RBOT_HELP_IN_PRIVATE_MESSAGE)
+})
 
 bot.on(callbackQuery("data"), async ctx => {
   const data = ctx.callbackQuery.data
-  const userId = ctx.callbackQuery.from.id
   switch (true) {
-    case data === 'showAddress':
-      ctx.reply(await getAddress(userId))
-      break;
-    case data === 'showBalance':
-      ctx.replyWithHTML(await getBalance(userId))
-      break;
-    case data === 'showHowToTransfer':
-      ctx.reply(C.RBOT_HOW_TO_TRANSFER_MESSAGE)
-      break;
-    case data === 'showHowToCreateARedEnvelope':
-      ctx.reply(C.RBOT_HOW_TO_CREATE_RED_ENVELOPE)
-      break;
-    case data === 'showRedEnvelopesYouCreated':
-      ctx.reply(await listRedEnvelope(userId))
-      break;
-    case data === 'showCommandList':
-      ctx.replyWithHTML(C.RBOT_HELP_IN_PRIVATE_MESSAGE)
-      break;
     case /^claimRedEnvelope_\d+$/.test(data):
-      const first_name = ctx.callbackQuery.from.first_name
+      const userId = ctx.callbackQuery.from.id
+      const firstName = ctx.callbackQuery.from.first_name
       const rid = data.split('_')[1];
-      ctx.reply(await grabRedEnvelope(userId, first_name, [rid]))
+      ctx.reply(await grabRedEnvelope(userId, firstName, [rid]))
       break;
     default:
       break;
@@ -160,6 +172,8 @@ async function getAgentActor(): Promise<ActorSubclass<_SERVICE>> {
   return createActor(CANISTER_ID, { agent })
 }
 
+// ctx.message.chat.type
+// export type Chat = Chat.PrivateChat | Chat.GroupChat | Chat.SupergroupChat | Chat.ChannelChat;
 enum ChatScenario {
   InGroup,
   Private,
