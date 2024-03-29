@@ -21,6 +21,7 @@ const CANISTER_ID = process.env.RBOT_CANISTER_ID || ""
 const BOT_TOKEN = process.env.RBOT_BOT_TOKEN || ""
 const WEBHOOK_PATH = process.env.RBOT_WEBHOOK_PATH || ""
 const SECRET_TOKEN = process.env.RBOT_SECRET_TOKEN || ""
+const BOT_USERNAME = process.env.RBOT_BOT_USERNAME
 
 const bot = new Telegraf(BOT_TOKEN);
 
@@ -43,6 +44,7 @@ bot.on(message('text'), async ctx => {
     // Process command
     switch (cmd) {
       case '/start':
+      case `/start@${BOT_USERNAME}`:
         if (chatId > 0) {
           ctx.replyWithHTML(C.RBOT_START_IN_PRIVATE_MESSAGE, { reply_markup: C.RBOT_START_IN_PRIVATE_KEYBOARD })
         } else if (chatId < 0) {
@@ -52,7 +54,12 @@ bot.on(message('text'), async ctx => {
         }
         break;
       case '/help':
-        ctx.replyWithHTML(C.RBOT_HELP_MESSAGE)
+      case `/help@${BOT_USERNAME}`:
+        if (chatId > 0) {
+          ctx.replyWithHTML(C.RBOT_HELP_IN_PRIVATE_MESSAGE)
+        } else {
+          ctx.replyWithHTML(C.RBOT_HELP_IN_GROUP_MESSAGE)
+        }
         break;
       // reapp commands
       case '/icreated':
@@ -71,20 +78,13 @@ bot.on(message('text'), async ctx => {
         }
         ctx.reply(await createRedEnvelope(userId, args))
         break;
-      // case '/send':
-      //   if (args.length !== 1) {
-      //     ctx.reply(`Invalid input: ${text}`)
-      //     return
+      // case '/grab':
+      //   if (!limitChatScenario(chatId, [ChatScenario.Private, ChatScenario.InGroup])) {
+      //     return ctx.reply('Only allowed in group chat')
       //   }
-      //   // TODO: call re_app send_re
-      //   ctx.reply(`call re_app send_re`)
+      //   const first_name = ctx.message.from.first_name
+      //   ctx.reply(await grabRedEnvelope(userId, first_name, args))
       //   break;
-      case '/grab':
-        if (!limitChatScenario(chatId, [ChatScenario.Private, ChatScenario.InGroup])) {
-          return ctx.reply('Only allowed in group chat')
-        }
-        ctx.reply(await grabRedEnvelope(userId, args))
-        break;
       case '/revoke':
         if (!limitChatScenario(chatId, [ChatScenario.Private])) {
           return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
@@ -139,11 +139,12 @@ bot.on(callbackQuery("data"), async ctx => {
       ctx.reply(await listRedEnvelope(userId))
       break;
     case data === 'showCommandList':
-      ctx.replyWithHTML(C.RBOT_HELP_MESSAGE)
+      ctx.replyWithHTML(C.RBOT_HELP_IN_PRIVATE_MESSAGE)
       break;
     case /^claimRedEnvelope_\d+$/.test(data):
+      const first_name = ctx.callbackQuery.from.first_name
       const rid = data.split('_')[1];
-      ctx.reply(await grabRedEnvelope(userId, [rid]))
+      ctx.reply(await grabRedEnvelope(userId, first_name, [rid]))
       break;
     default:
       break;
@@ -229,7 +230,7 @@ async function createRedEnvelope(userId: number, args: string[]): Promise<string
   }
 }
 
-async function grabRedEnvelope(userId: number, args: string[]): Promise<string> {
+async function grabRedEnvelope(userId: number, username: string, args: string[]): Promise<string> {
   if (args.length !== 1) {
     return '/grab [RedEnvelopeID]'
   }
@@ -243,9 +244,9 @@ async function grabRedEnvelope(userId: number, args: string[]): Promise<string> 
   const serviceActor = await getAgentActor()
   const ret = await serviceActor.open_red_envelope(BigInt(args[0]), userIdentity.getPrincipal())
   if ('Err' in ret) {
-    return `Grab red envelope error: ${ret['Err']}`
+    return `${username} ${ret['Err']}`
   } else {
-    return `Grab amount: ${ret['Ok']}`
+    return `${username} claim amount: ${ret['Ok']}`
   }
 }
 

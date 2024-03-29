@@ -5,6 +5,7 @@
 DFX_NETWORK="local" or "mainnet"
 
 # re app
+RE_BOT_USERNAME=""
 RE_CANISTER_ID=""
 RE_BOT_TOKEN="..."
 RE_WEBHOOK_PATH="/"
@@ -13,16 +14,18 @@ RE_SECRET_TOKEN="..."
 ```
 
 ## telegram <--> agent <--> reapp
-| command   | command args      | call reapp | output       | agent -> reapp  |
-| :-------- | :---------------- | :--------: | :----------- | --------------- |
-| /start    | -                 | N          | some text    | - |
-| /help     | -                 | N          | some text    | - |
-| /listre   | -                 | Y          | [re list]?   | user_principal |
-| /createre | symbol<br/>amount | Y          | reid?        | user_principal<br>symbol<br/>amount |
-| /sendre   | reid              | Y          | success?     | user_principal<br>reid |
-| /grabre   | reid              | Y          | amount?      | user_principal<br>reid |
-| /revokere | reid              | Y          | success?     | user_principal<br>reid |
-| /balance  | symbol[O]         | N          | [token list] | - |
+| command      | command args                | call reapp | method              | output       |
+| :--------    | :-------------------------- | :--------: | :------------------ | :----------- |
+| /start       | -                           | N          |                     | some text    |
+| /help        | -                           | N          |                     | some text    |
+| /icreated    | -                           | Y          | get_rids_by_owner   | [re list]    |
+| /create      | symbol<br/>amount<br/>count | Y          | create_red_envelope | reid         |
+| /redenvelope | reid                        | Y          | get_red_envelope    | redenvelope  |
+| /grab        | reid                        | Y          | open_red_envelope   | amount       |
+| /revoke      | reid                        | Y          | revoke_red_envelope | amount       |
+| /address     |                             | N          |                     | address      |
+| /balance     |                             | N          |                     | [token list] |
+| /transfer    |                             | N          |                     | text         |
 
 
 ## Deploy

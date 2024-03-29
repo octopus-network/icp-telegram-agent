@@ -54,7 +54,23 @@ export const RBOT_START_IN_PRIVATE_KEYBOARD = {
   ]
 }
 
-export const RBOT_HELP_MESSAGE = `
+export const RBOT_HELP_IN_GROUP_MESSAGE = `
+👇 Commands available in private chat
+
+/start
+Show welcome message and dashboard.
+
+/help
+Show full command list.
+
+👇 Commands available in group chat
+
+/redenvelope [RedEnvelopeID]
+Show a red envelope in a group.
+<i>e.g., /redenvelope XXXXXX</i>
+`
+
+export const RBOT_HELP_IN_PRIVATE_MESSAGE = `
 👇 Commands available in private chat
 
 /start
