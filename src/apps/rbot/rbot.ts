@@ -12,7 +12,7 @@ import { makeAgent } from '../../utils'
 import { getAgentIdentity, getUserIdentity, hasUserIdentity } from '../../identity'
 import { createPool, getTokens, getTokenBySymbol, getTokenBycanister } from '../../tokens'
 import { icrc1BalanceOf, icrc1Transfer } from "../ledger/ledger";
-import i18next, { I18nContext } from "./i18n";
+import i18next, { I18nContext, getLanguage, setLanguage } from "./i18n";
 
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
@@ -27,9 +27,29 @@ const SECRET_TOKEN = process.env.RBOT_SECRET_TOKEN || ""
 const bot = new Telegraf<I18nContext>(BOT_TOKEN);
 
 bot.use(async (ctx, next) => {
-  const lng = ctx.from?.language_code || 'en'
-  ctx.i18n = i18next.getFixedT(lng)
+  // const lng = ctx.from?.language_code || 'en'
+  let language = 'en'
+  const userId = ctx.from?.id
+  if (userId) {
+    language = await getLanguage(await createPool(), userId)
+  }
+  ctx.i18n = i18next.getFixedT(language)
   await next()
+});
+
+bot.start(async ctx => {
+  if (/^claimRedEnvelope_\d+$/.test(ctx.payload)) {
+    const userId = ctx.from.id
+    const firstName = ctx.from.first_name
+    const rid = ctx.payload.split('_')[1];
+    ctx.reply(await grabRedEnvelope(userId, firstName, [rid]))
+  } else {
+    if (ctx.message.chat.id > 0) {
+      ctx.replyWithHTML(C.RBOT_START_IN_PRIVATE_MESSAGE, { reply_markup: C.RBOT_START_IN_PRIVATE_KEYBOARD })
+    } else {
+      ctx.replyWithHTML(C.RBOT_START_IN_GROUP_MESSAGE, { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
+    }
+  }
 });
 
 bot.command('start', ctx => {
@@ -164,6 +184,22 @@ bot.action('showRedEnvelopesYouCreated', async ctx => {
 
 bot.action('showCommandList', ctx => {
   ctx.replyWithHTML(C.RBOT_HELP_IN_PRIVATE_MESSAGE)
+})
+
+// bot.action(/^_\d+$/, async ctx => {
+//   const userId = ctx.callbackQuery.from.id
+//   const firstName = ctx.callbackQuery.from.first_name
+//   const rid = ctx.match[0].split('_')[1];
+//   ctx.reply(await grabRedEnvelope(userId, firstName, [rid]))
+// })
+
+bot.action('switchLanguage', async ctx => {
+  const userId = ctx.callbackQuery.from.id
+  const pool = await createPool()
+  let lang = await getLanguage(pool, userId)
+  lang =  (lang === 'en') ? 'zh' : 'en'
+  await setLanguage(pool, userId, lang)
+  ctx.reply(`Switch language to ${lang}`)
 })
 
 bot.on(callbackQuery("data"), async ctx => {

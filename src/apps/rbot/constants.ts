@@ -49,6 +49,7 @@ export const RBOT_START_IN_PRIVATE_KEYBOARD = {
       { text: "Red envelopes that you created", callback_data: "showRedEnvelopesYouCreated" }
     ],
     [
+      { text: "En/Zh", callback_data: "switchLanguage" },
       { text: "Command list", callback_data: "showCommandList" }
     ]
   ]
@@ -110,14 +111,24 @@ export const RBOT_REDENVELOPE_KEYBOARD = (rid: bigint) => {
   return {
     inline_keyboard: [
       [
-        { text: "Claim", callback_data: `claimRedEnvelope_${rid.toString()}` },
+        {
+          text: "Claim",
+          url: `https://t.me/${BOT_USERNAME}?start=claimRedEnvelope_${rid.toString()}`
+          // callback_data: `claimRedEnvelope_${rid.toString()`
+        },
       ],
-      [
-        { text: "View log", callback_data: "showRedEnvelopeLog" }
-      ],
-      [
-        { text: "Open your wallet", url: `https://t.me/${BOT_USERNAME}?start=1` }
-      ]
+      // [
+      //   {
+      //     text: "View log",
+      //     callback_data: "showRedEnvelopeLog"
+      //   }
+      // ],
+      // [
+      //   {
+      //     text: "Open your wallet",
+      //     url: `https://t.me/${BOT_USERNAME}?start`
+      //   }
+      // ]
     ]
   }
 }

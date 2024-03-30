@@ -23,15 +23,15 @@ export default i18next
 // TODO: language switch
 
 export interface RbotSettings {
-  uid: number;
+  userid: number;
   language: string; // en zh
 }
 
-export const getLanguage = async (pool: Knex.Knex, uid: number) => {
+export const getLanguage = async (pool: Knex.Knex, userid: number) => {
   const settings = await pool
     .select()
     .from('rbot_settings')
-    .where({ uid })
+    .where({ userid })
     .first() as RbotSettings | undefined;
   if (settings) {
     return settings.language
@@ -40,6 +40,14 @@ export const getLanguage = async (pool: Knex.Knex, uid: number) => {
   }
 }
 
-export const setLanguage = async (pool: Knex.Knex, uid: number, lang: string) => {
-  return await pool('tokens').upsert({ uid, language: lang });
+export const setLanguage = async (pool: Knex.Knex, userid: number, language: string) => {
+  await pool('rbot_settings')
+    .insert({ userid, language })
+    .onConflict('userid')
+    .merge()
 }
+
+// CREATE TABLE rbot_settings (
+//   userid bigint PRIMARY KEY,
+//   language TEXT NOT NULL
+// );
