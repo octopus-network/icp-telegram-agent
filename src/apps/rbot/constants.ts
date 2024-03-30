@@ -106,10 +106,6 @@ Show a red envelope in a group.
 <i>e.g., /redenvelope XXXXXX</i>
 `
 
-export const RBOT_HOW_TO_TRANSFER_MESSAGE = 'Type the follwing command to transfer:\n\n/transfer [Symbol] [Amount] [Address]\ne.g., /transfer BTC 0.3 xxxxxxxxxxxxxxxx'
-
-export const RBOT_HOW_TO_CREATE_RED_ENVELOPE = 'Type the follwing command to create a red envelope:\n\n/create [Symbol] [Amount] [Count]\ne.g., /create BTC 0.3 7'
-
 export const RBOT_REDENVELOPE_KEYBOARD = (rid: bigint) => {
   return {
     inline_keyboard: [

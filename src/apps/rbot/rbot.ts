@@ -12,6 +12,7 @@ import { makeAgent } from '../../utils'
 import { getAgentIdentity, getUserIdentity, hasUserIdentity } from '../../identity'
 import { createPool, getTokens, getTokenBySymbol, getTokenBycanister } from '../../tokens'
 import { icrc1BalanceOf, icrc1Transfer } from "../ledger/ledger";
+import i18next, { I18nContext } from "./i18n";
 
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
@@ -23,7 +24,13 @@ const BOT_TOKEN = process.env.RBOT_BOT_TOKEN || ""
 const WEBHOOK_PATH = process.env.RBOT_WEBHOOK_PATH || ""
 const SECRET_TOKEN = process.env.RBOT_SECRET_TOKEN || ""
 
-const bot = new Telegraf(BOT_TOKEN);
+const bot = new Telegraf<I18nContext>(BOT_TOKEN);
+
+bot.use(async (ctx, next) => {
+  const lng = ctx.from?.language_code || 'en'
+  ctx.i18n = i18next.getFixedT(lng)
+  await next()
+});
 
 bot.command('start', ctx => {
   if (ctx.message.chat.id > 0) {
@@ -143,11 +150,11 @@ bot.action('showBalance', async ctx => {
 })
 
 bot.action('showHowToTransfer', ctx => {
-  ctx.reply(C.RBOT_HOW_TO_TRANSFER_MESSAGE)
+  ctx.reply(ctx.i18n('how_to_transfer'))
 })
 
 bot.action('showHowToCreateARedEnvelope', ctx => {
-  ctx.reply(C.RBOT_HOW_TO_CREATE_RED_ENVELOPE)
+  ctx.reply(ctx.i18n('how_to_create_red_envelope'))
 })
 
 bot.action('showRedEnvelopesYouCreated', async ctx => {

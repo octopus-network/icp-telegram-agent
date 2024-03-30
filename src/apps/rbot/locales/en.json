@@ -1,0 +1,6 @@
+{
+	"translation": {
+		"how_to_transfer": "Type the follwing command to transfer:\n\n/transfer [Symbol] [Amount] [Address]\ne.g., /transfer BTC 0.3 xxxxxxxxxxxxxxxx",
+		"how_to_create_red_envelope": "Type the follwing command to create a red envelope:\n\n/create [Symbol] [Amount] [Count]\ne.g., /create BTC 0.3 7"
+	}
+}
