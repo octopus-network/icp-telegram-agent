@@ -196,6 +196,8 @@ bot.action(/^claimRedEnvelope_\d+$/, async ctx => {
   const firstName = ctx.callbackQuery.from.first_name
   const rid = ctx.match[0].split('_')[1];
   ctx.reply(await grabRedEnvelope(userId, firstName, [rid]))
+  // TODO: edit markup when the last one
+  // ctx.editMessageReplyMarkup(undefined)
 })
 
 export const callback = bot.webhookCallback(WEBHOOK_PATH, { secretToken: SECRET_TOKEN })
