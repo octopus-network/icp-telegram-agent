@@ -144,6 +144,15 @@ bot.on(message('chat_shared'), async ctx => {
   }
 })
 
+bot.on(message('users_shared'), async ctx => {
+  const user_ids = ctx.message.users_shared.user_ids
+  const requestId = ctx.message.users_shared.request_id - 1
+  if (user_ids.length > 0 && requestId) {
+    const [message, markup] = await showRedEnvelope(0, [requestId.toString()])
+    ctx.telegram.sendMessage(user_ids[0], message, { ...markup, parse_mode: 'HTML' })
+  }
+})
+
 bot.action('showAddress', async ctx => {
   const userId = ctx.callbackQuery.from.id
   ctx.reply(await getAddress(userId))
@@ -272,8 +281,18 @@ async function createRedEnvelope(userId: number, args: string[]): Promise<[strin
     const rid = ret2['Ok']
     if (rid <= Number.MAX_SAFE_INTEGER && rid >= Number.MIN_SAFE_INTEGER) {
       const requestId = Number(rid)
-      const keyboard = Markup.keyboard([Markup.button.groupRequest("Choose a Group", requestId)]).oneTime().resize()
-      return [`Red envelope id: ${rid}`, keyboard]
+      if (count == 1) {
+        const keyboard = Markup.keyboard([
+          Markup.button.userRequest("Choose a User", requestId + 1),
+          Markup.button.groupRequest("Choose a Group", requestId),
+        ]).oneTime().resize()
+        return [`Red envelope id: ${rid}`, keyboard]
+      } else {
+        const keyboard = Markup.keyboard([
+          Markup.button.groupRequest("Choose a Group", requestId),
+        ]).oneTime().resize()
+        return [`Red envelope id: ${rid}`, keyboard]
+      }
     }
     return [`Red envelope id: ${rid}`]
   }
