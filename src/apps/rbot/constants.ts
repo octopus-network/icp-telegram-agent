@@ -113,8 +113,8 @@ export const RBOT_REDENVELOPE_KEYBOARD = (rid: bigint) => {
       [
         {
           text: "Claim",
-          url: `https://t.me/${BOT_USERNAME}?start=claimRedEnvelope_${rid.toString()}`
-          // callback_data: `claimRedEnvelope_${rid.toString()`
+          // url: `https://t.me/${BOT_USERNAME}?start=claimRedEnvelope_${rid.toString()}`
+          callback_data: `claimRedEnvelope_${rid.toString()}`
         },
       ],
       // [
@@ -123,12 +123,12 @@ export const RBOT_REDENVELOPE_KEYBOARD = (rid: bigint) => {
       //     callback_data: "showRedEnvelopeLog"
       //   }
       // ],
-      // [
-      //   {
-      //     text: "Open your wallet",
-      //     url: `https://t.me/${BOT_USERNAME}?start`
-      //   }
-      // ]
+      [
+        {
+          text: "Open your wallet",
+          url: `https://t.me/${BOT_USERNAME}?start`
+        }
+      ]
     ]
   }
 }

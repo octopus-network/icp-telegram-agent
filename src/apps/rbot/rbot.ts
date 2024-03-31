@@ -9,7 +9,7 @@ import { RedEnvelope } from "./declarations/rbot_backend/rbot_backend.did";
 import { _SERVICE } from "./declarations/rbot_backend/rbot_backend.did";
 import * as C from './constants'
 import { makeAgent } from '../../utils'
-import { getAgentIdentity, getUserIdentity, hasUserIdentity } from '../../identity'
+import { getAgentIdentity, getUserIdentity } from '../../identity'
 import { createPool, getTokens, getTokenBySymbol, getTokenBycanister } from '../../tokens'
 import { icrc1BalanceOf, icrc1Transfer } from "../ledger/ledger";
 import i18next, { I18nContext, getLanguage, setLanguage } from "./i18n";
@@ -35,21 +35,6 @@ bot.use(async (ctx, next) => {
   }
   ctx.i18n = i18next.getFixedT(language)
   await next()
-});
-
-bot.start(async ctx => {
-  if (/^claimRedEnvelope_\d+$/.test(ctx.payload)) {
-    const userId = ctx.from.id
-    const firstName = ctx.from.first_name
-    const rid = ctx.payload.split('_')[1];
-    ctx.reply(await grabRedEnvelope(userId, firstName, [rid]))
-  } else {
-    if (ctx.message.chat.id > 0) {
-      ctx.replyWithHTML(C.RBOT_START_IN_PRIVATE_MESSAGE, { reply_markup: C.RBOT_START_IN_PRIVATE_KEYBOARD })
-    } else {
-      ctx.replyWithHTML(C.RBOT_START_IN_GROUP_MESSAGE, { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
-    }
-  }
 });
 
 bot.command('start', ctx => {
@@ -182,38 +167,25 @@ bot.action('showRedEnvelopesYouCreated', async ctx => {
   ctx.reply(await listRedEnvelope(userId))
 })
 
-bot.action('showCommandList', ctx => {
-  ctx.replyWithHTML(C.RBOT_HELP_IN_PRIVATE_MESSAGE)
-})
-
-// bot.action(/^_\d+$/, async ctx => {
-//   const userId = ctx.callbackQuery.from.id
-//   const firstName = ctx.callbackQuery.from.first_name
-//   const rid = ctx.match[0].split('_')[1];
-//   ctx.reply(await grabRedEnvelope(userId, firstName, [rid]))
-// })
-
 bot.action('switchLanguage', async ctx => {
   const userId = ctx.callbackQuery.from.id
   const pool = await createPool()
   let lang = await getLanguage(pool, userId)
-  lang =  (lang === 'en') ? 'zh' : 'en'
+  lang = (lang === 'en') ? 'zh' : 'en'
   await setLanguage(pool, userId, lang)
   ctx.reply(`Switch language to ${lang}`)
 })
 
-bot.on(callbackQuery("data"), async ctx => {
-  const data = ctx.callbackQuery.data
-  switch (true) {
-    case /^claimRedEnvelope_\d+$/.test(data):
-      const userId = ctx.callbackQuery.from.id
-      const firstName = ctx.callbackQuery.from.first_name
-      const rid = data.split('_')[1];
-      ctx.reply(await grabRedEnvelope(userId, firstName, [rid]))
-      break;
-    default:
-      break;
-  }
+bot.action('showCommandList', ctx => {
+  ctx.replyWithHTML(C.RBOT_HELP_IN_PRIVATE_MESSAGE)
+})
+
+bot.action(/^claimRedEnvelope_\d+$/, async ctx => {
+  console.log(ctx.match)
+  const userId = ctx.callbackQuery.from.id
+  const firstName = ctx.callbackQuery.from.first_name
+  const rid = ctx.match[0].split('_')[1];
+  ctx.reply(await grabRedEnvelope(userId, firstName, [rid]))
 })
 
 export const callback = bot.webhookCallback(WEBHOOK_PATH, { secretToken: SECRET_TOKEN })
@@ -244,8 +216,8 @@ function limitChatScenario(chatId: number, allowed: ChatScenario[]): boolean {
 }
 
 async function createRedEnvelope(userId: number, args: string[]): Promise<[string, object?]> {
-  if (args.length !== 3) {
-    return ['Invalid input\n\n/create [Symbol] [Amout] [Count]']
+  if (args.length !== 3 && args.length !== 4) {
+    return ['Invalid input\n\n/create [Symbol] [Amout] [Count]\n/create [Symbol] [Amout] [Count] [F]']
   }
   try {
     typeof BigInt(args[1]) === 'bigint'
@@ -261,14 +233,18 @@ async function createRedEnvelope(userId: number, args: string[]): Promise<[strin
     return ['Invalid [Symbol]\n/create [Symbol] [Amout] [Count]']
   }
   const amout = BigInt(args[1])
-  if (amout > token.re_maximum || amout < token.re_minimum) {
-    return [`Invalid [Amout ${token.re_minimum}~${token.re_maximum}]\n/create [Symbol] [Amout] [Count]`]
+  if (amout / BigInt(count) < token.re_minimum_each) {
+    return [`Invalid [Amout/Count < ${token.re_minimum_each}]\n/create [Symbol] [Amout] [Count]`]
   }
+  const random = (args.length === 4 && args[3] === 'F') ? false : true
 
-  // TODO: Approve to agent, transfer_from to re_app & fee_address
+  // TODO: Approve to agent, then transfer_from to re_app + fee_address
   const fee_amount = amout * BigInt(token.fee_ratio) / 100n
-  const re_amount = amout - fee_amount
-  let ret = await icrc1Transfer(token, userId, re_amount, Principal.fromText(CANISTER_ID))
+  const balance = await icrc1BalanceOf(token, userId)
+  if (balance < amout + fee_amount) {
+    return [`Insufficient balance ${balance}\n/create [Symbol] [Amout] [Count]`]
+  }
+  let ret = await icrc1Transfer(token, userId, amout, Principal.fromText(CANISTER_ID))
   if ('Err' in ret) {
     return [`Transfer error: ${ret['Err']}`]
   }
@@ -285,8 +261,8 @@ async function createRedEnvelope(userId: number, args: string[]): Promise<[strin
     token_id: Principal.fromText(token.canister),
     owner: getUserIdentity(userId).getPrincipal(),
     memo: 'test memo',
-    is_random: true,
-    amount: re_amount,
+    is_random: random,
+    amount: amout,
     expires_at: []
   }
   const ret2 = await serviceActor.create_red_envelope(re)
