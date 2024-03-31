@@ -23,6 +23,7 @@ const CANISTER_ID = process.env.RBOT_CANISTER_ID || ""
 const BOT_TOKEN = process.env.RBOT_BOT_TOKEN || ""
 const WEBHOOK_PATH = process.env.RBOT_WEBHOOK_PATH || ""
 const SECRET_TOKEN = process.env.RBOT_SECRET_TOKEN || ""
+const TOKEN_SYMBOL = process.env.RBOT_TOKEN_SYMBOL || ""
 
 const bot = new Telegraf<I18nContext>(BOT_TOKEN);
 
@@ -225,33 +226,33 @@ function limitChatScenario(chatId: number, allowed: ChatScenario[]): boolean {
 }
 
 async function createRedEnvelope(userId: number, args: string[]): Promise<[string, object?]> {
-  if (args.length !== 3 && args.length !== 4) {
-    return ['Invalid input\n\n/create [Symbol] [Amout] [Count]\n/create [Symbol] [Amout] [Count] [F]']
+  if (args.length !== 2 && args.length !== 3) {
+    return ['Invalid input\n\n/create [Amout] [Count]\n/create [Amout] [Count] [F]']
   }
   try {
-    typeof BigInt(args[1]) === 'bigint'
+    typeof BigInt(args[0]) === 'bigint'
   } catch (error) {
-    return ['Invalid [Amout]\n/create [Symbol] [Amout] [Count]']
+    return ['Invalid [Amout]\n/create [Amout] [Count]']
   }
-  const count = parseInt(args[2], 10);
-  if (isNaN(count) || String(count) !== args[2]) {
-    return ['Invalid [Count]\n/create [Symbol] [Amout] [Count]']
+  const count = parseInt(args[1], 10);
+  if (isNaN(count) || String(count) !== args[1]) {
+    return ['Invalid [Count]\n/create [Amout] [Count]']
   }
-  const token = await getTokenBySymbol(await createPool(), args[0])
+  const token = await getTokenBySymbol(await createPool(), TOKEN_SYMBOL)
   if (!token) {
-    return ['Invalid [Symbol]\n/create [Symbol] [Amout] [Count]']
+    return ['Invalid Symbol\n/create [Amout] [Count]']
   }
-  const amout = BigInt(args[1])
+  const amout = BigInt(args[0])
   if (amout / BigInt(count) < token.re_minimum_each) {
-    return [`Invalid [Amout/Count < ${token.re_minimum_each}]\n/create [Symbol] [Amout] [Count]`]
+    return [`Invalid [Amout/Count < ${token.re_minimum_each}]\n/create [Amout] [Count]`]
   }
-  const random = (args.length === 4 && args[3] === 'F') ? false : true
+  const random = (args.length === 3 && args[2] === 'F') ? false : true
 
   // TODO: Approve to agent, then transfer_from to re_app + fee_address
   const fee_amount = amout * BigInt(token.fee_ratio) / 100n
   const balance = await icrc1BalanceOf(token, userId)
   if (balance < amout + fee_amount) {
-    return [`Insufficient balance ${balance}\n/create [Symbol] [Amout] [Count]`]
+    return [`Insufficient balance ${balance}\n/create [Amout] [Count]`]
   }
   let ret = await icrc1Transfer(token, userId, amout, Principal.fromText(CANISTER_ID))
   if ('Err' in ret) {
@@ -383,7 +384,7 @@ async function getAddress(userId: number): Promise<string> {
   return `Wallet address:\n ${address}`
 }
 
-async function getBalance(userId: number): Promise<string> {
+async function getBalances(userId: number): Promise<string> {
   const tokens = await getTokens(await createPool());
   const balances = await Promise.all(tokens.map(async (token) => ([
     token.symbol,
@@ -391,6 +392,20 @@ async function getBalance(userId: number): Promise<string> {
   ])));
   balances.unshift(['Token', 'Amount']);
   const tableString = table(balances, {
+    singleLine: true,
+    border: getBorderCharacters('ramac'),
+  })
+  return "<pre>" + tableString + "</pre>"
+}
+
+async function getBalance(userId: number): Promise<string> {
+  const token = await getTokenBySymbol(await createPool(), TOKEN_SYMBOL);
+  let balance = '0'
+  if (token) {
+    balance = (await icrc1BalanceOf(token, userId)).toString()
+  }
+  const data = [['Token', 'Amount'], [TOKEN_SYMBOL, balance]]
+  const tableString = table(data, {
     singleLine: true,
     border: getBorderCharacters('ramac'),
   })

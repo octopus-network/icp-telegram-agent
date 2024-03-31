@@ -23,8 +23,8 @@ How to create and send a red envelope in a group?
 == STEP 1. Deposit cryptocurrencies to your wallet address.
 
 == STEP 2. Create a red envelope.
-/create [Symbol] [Amout] [Count]
-<i>e.g., /create BTC 0.1 5</i>
+/create [Amout] [Count]
+<i>e.g., /create 1000 5</i>
 <u>It must be done in this private chat.</u>
 
 == SETP 3. Add me to your group.
@@ -87,9 +87,9 @@ Show your wallet balance.
 Transfer cryptocurrencies from your wallet to any address.
 <i>e.g., /transfer BTC 0.1 XXXXXXXXXXXXXXXX</i>
 
-/create [Symbol] [Amout] [Count]
+/create [Amout] [Count]
 Create an red envelope.
-<i>e.g., /create BTC 0.1 5</i>
+<i>e.g., /create 1000 5</i>
 
 /icreated
 Show all red envelopes that you created.

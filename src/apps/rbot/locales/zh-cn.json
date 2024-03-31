@@ -1,6 +1,6 @@
 {
   "translation": {
     "how_to_transfer": "输入以下命令进行转账：\n\n/transfer [货币符号] [金额] [地址]\n例如，/transfer BTC 0.3 xxxxxxxxxxxxxxxx",
-    "how_to_create_red_envelope": "输入以下命令以创建红包：\n\n/create [货币符号] [金额] [数量]\n例如，/create BTC 0.3 7"
+    "how_to_create_red_envelope": "输入以下命令以创建红包：\n\n/create [金额] [数量]\n例如，/create 500 7"
   }
 }
