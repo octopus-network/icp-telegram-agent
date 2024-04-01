@@ -1,5 +1,8 @@
 export const idlFactory = ({ IDL }) => {
-  const Result = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Text });
+  const Result = IDL.Variant({
+    'Ok' : IDL.Null,
+    'Err' : IDL.Tuple(IDL.Nat64, IDL.Text),
+  });
   const RedEnvelope = IDL.Record({
     'num' : IDL.Nat8,
     'status' : IDL.Nat8,
@@ -11,7 +14,10 @@ export const idlFactory = ({ IDL }) => {
     'amount' : IDL.Nat,
     'expires_at' : IDL.Opt(IDL.Nat64),
   });
-  const Result_1 = IDL.Variant({ 'Ok' : IDL.Nat, 'Err' : IDL.Text });
+  const Result_1 = IDL.Variant({
+    'Ok' : IDL.Nat,
+    'Err' : IDL.Tuple(IDL.Nat64, IDL.Text),
+  });
   return IDL.Service({
     'add_agent_acc' : IDL.Func([IDL.Principal], [Result], []),
     'add_token_to_white_list' : IDL.Func(

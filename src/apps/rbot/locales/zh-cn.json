@@ -1,6 +1,22 @@
 {
   "translation": {
     "how_to_transfer": "输入以下命令进行转账：\n\n/transfer [货币符号] [金额] [地址]\n例如，/transfer BTC 0.3 xxxxxxxxxxxxxxxx",
-    "how_to_create_red_envelope": "输入以下命令以创建红包：\n\n/create [金额] [数量]\n例如，/create 500 7"
+    "how_to_create_red_envelope": "输入以下命令以创建红包：\n\n/create [金额] [数量]\n例如，/create 500 7",
+
+		"reapp_error_1001": "Permission denied",
+		"reapp_error_1101": "The token is not in the whitelist",
+		"reapp_error_1102": "The expiration time is too short",
+		"reapp_error_1103": "The token allowance is not enough",
+		"reapp_error_1104": "Get balance failed",
+		"reapp_error_1105": "Insufficient balance",
+		"reapp_error_1106": "Transfer failed with transfer_from",
+		"reapp_error_1107": "The red enveloper has expired",
+		"reapp_error_1108": "The red enveloper is not valid",
+		"reapp_error_1109": "The red packet is empty",
+		"reapp_error_1110": "You have already participated",
+		"reapp_error_1111": "Transfer failed",
+		"reapp_error_1112": "Red packet not found",
+		"reapp_error_1113": "The red enveloper has not expired",
+		"reapp_error_1114": "Cannot revoke unlimited red enveloper"
   }
 }

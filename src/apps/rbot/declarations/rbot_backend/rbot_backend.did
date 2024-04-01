@@ -9,8 +9,8 @@ type RedEnvelope = record {
   amount : nat;
   expires_at : opt nat64;
 };
-type Result = variant { Ok; Err : text };
-type Result_1 = variant { Ok : nat; Err : text };
+type Result = variant { Ok; Err : record { nat64; text } };
+type Result_1 = variant { Ok : nat; Err : record { nat64; text } };
 service : (principal) -> {
   add_agent_acc : (principal) -> (Result);
   add_token_to_white_list : (principal, nat8) -> (Result);

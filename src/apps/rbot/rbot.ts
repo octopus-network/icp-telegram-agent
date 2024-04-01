@@ -13,6 +13,7 @@ import { getAgentIdentity, getUserIdentity } from '../../identity'
 import { createPool, getTokens, getTokenBySymbol, getTokenBycanister } from '../../tokens'
 import { icrc1BalanceOf, icrc1Transfer } from "../ledger/ledger";
 import i18next, { I18nContext, getLanguage, setLanguage } from "./i18n";
+import { TFunction } from "i18next";
 
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
@@ -89,7 +90,7 @@ bot.command('create', async ctx => {
   if (!limitChatScenario(chatId, [ChatScenario.Private])) {
     return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
   }
-  const [message, markup] = await createRedEnvelope(userId, args)
+  const [message, markup] = await createRedEnvelope(userId, args, ctx.i18n)
   ctx.reply(message, markup)
 })
 
@@ -116,7 +117,7 @@ bot.command('revoke', async ctx => {
   if (!limitChatScenario(chatId, [ChatScenario.Private])) {
     return ctx.replyWithHTML('Only allowed in private chat', { reply_markup: C.RBOT_START_IN_GROUP_KEYBOARD })
   }
-  ctx.reply(await revokeRedEnvelope(userId, args))
+  ctx.reply(await revokeRedEnvelope(userId, args, ctx.i18n))
 })
 
 bot.on(message('text'), async ctx => {
@@ -195,7 +196,7 @@ bot.action(/^claimRedEnvelope_\d+$/, async ctx => {
   const userId = ctx.callbackQuery.from.id
   const firstName = ctx.callbackQuery.from.first_name
   const rid = ctx.match[0].split('_')[1];
-  ctx.reply(await grabRedEnvelope(userId, firstName, [rid]))
+  ctx.reply(await grabRedEnvelope(userId, firstName, [rid], ctx.i18n))
   // TODO: edit markup when the last one
   // ctx.editMessageReplyMarkup(undefined)
 })
@@ -227,7 +228,7 @@ function limitChatScenario(chatId: number, allowed: ChatScenario[]): boolean {
   return false
 }
 
-async function createRedEnvelope(userId: number, args: string[]): Promise<[string, object?]> {
+async function createRedEnvelope(userId: number, args: string[], i18n: TFunction): Promise<[string, object?]> {
   if (args.length !== 2 && args.length !== 3) {
     return ['Invalid input\n\n/create [Amout] [Count]\n/create [Amout] [Count] [F]']
   }
@@ -279,7 +280,7 @@ async function createRedEnvelope(userId: number, args: string[]): Promise<[strin
   }
   const ret2 = await serviceActor.create_red_envelope(re)
   if ('Err' in ret2) {
-    return [`Create red envelope error: ${ret2['Err']}`]
+    return [i18n(`reapp_error_${ret2['Err'][0].toString()}`)]
   } else {
     const rid = ret2['Ok']
     if (rid <= Number.MAX_SAFE_INTEGER && rid >= Number.MIN_SAFE_INTEGER) {
@@ -301,7 +302,7 @@ async function createRedEnvelope(userId: number, args: string[]): Promise<[strin
   }
 }
 
-async function grabRedEnvelope(userId: number, username: string, args: string[]): Promise<string> {
+async function grabRedEnvelope(userId: number, username: string, args: string[], i18n:TFunction): Promise<string> {
   if (args.length !== 1) {
     return '/grab [RedEnvelopeID]'
   }
@@ -315,13 +316,13 @@ async function grabRedEnvelope(userId: number, username: string, args: string[])
   const serviceActor = await getAgentActor()
   const ret = await serviceActor.open_red_envelope(BigInt(args[0]), userIdentity.getPrincipal())
   if ('Err' in ret) {
-    return `${username} ${ret['Err']}`
+    return username + i18n(`reapp_error_${ret['Err'][0].toString()}`)
   } else {
     return `${username} claim amount: ${ret['Ok']}`
   }
 }
 
-async function revokeRedEnvelope(userId: number, args: string[]): Promise<string> {
+async function revokeRedEnvelope(userId: number, args: string[], i18n: TFunction): Promise<string> {
   if (args.length !== 1) {
     return '/revoke [RedEnvelopeID]'
   }
@@ -335,7 +336,7 @@ async function revokeRedEnvelope(userId: number, args: string[]): Promise<string
   const serviceActor = await getAgentActor()
   const ret = await serviceActor.revoke_red_envelope(BigInt(args[0]), /* TODO: userIdentity.getPrincipal()*/)
   if ('Err' in ret) {
-    return `Revoke red envelope error: ${ret['Err']}`
+    return i18n(`reapp_error_${ret['Err'][0].toString()}`)
   } else {
     return `Revoke amount: ${ret['Ok']}`
   }

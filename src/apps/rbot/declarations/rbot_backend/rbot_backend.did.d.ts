@@ -14,9 +14,9 @@ export interface RedEnvelope {
   'expires_at' : [] | [bigint],
 }
 export type Result = { 'Ok' : null } |
-  { 'Err' : string };
+  { 'Err' : [bigint, string] };
 export type Result_1 = { 'Ok' : bigint } |
-  { 'Err' : string };
+  { 'Err' : [bigint, string] };
 export interface _SERVICE {
   'add_agent_acc' : ActorMethod<[Principal], Result>,
   'add_token_to_white_list' : ActorMethod<[Principal, number], Result>,
