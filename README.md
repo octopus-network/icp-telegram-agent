@@ -1,33 +1,5 @@
 # SocialFi-Agent
 
-## Config env variables
-```
-DFX_NETWORK="local" or "mainnet"
-
-# re app
-RE_BOT_USERNAME=""
-RE_CANISTER_ID=""
-RE_BOT_TOKEN="..."
-RE_WEBHOOK_PATH="/"
-RE_SECRET_TOKEN="..."
-
-```
-
-## telegram <--> agent <--> reapp
-| command      | command args                | call reapp | method              | output       |
-| :--------    | :-------------------------- | :--------: | :------------------ | :----------- |
-| /start       | -                           | N          |                     | some text    |
-| /help        | -                           | N          |                     | some text    |
-| /icreated    | -                           | Y          | get_rids_by_owner   | [re list]    |
-| /create      | symbol<br/>amount<br/>count | Y          | create_red_envelope | reid         |
-| /redenvelope | reid                        | Y          | get_red_envelope    | redenvelope  |
-| /grab        | reid                        | Y          | open_red_envelope   | amount       |
-| /revoke      | reid                        | Y          | revoke_red_envelope | amount       |
-| /address     |                             | N          |                     | address      |
-| /balance     |                             | N          |                     | [token list] |
-| /transfer    |                             | N          |                     | text         |
-
-
 ## Deploy
 - Using individual service accounts for your functions [Link](https://cloud.google.com/functions/docs/securing/function-identity#individual)
     - Cloud Run Invoker
@@ -37,28 +9,62 @@ RE_SECRET_TOKEN="..."
 - Making a secret accessible to a function [Link](https://cloud.google.com/functions/docs/configuring/secrets#making_a_secret_accessible_to_a_function)
 
 ```
-gcloud functions deploy rbot \
+
+gcloud functions deploy RE00bot \
   --gen2 \
   --runtime=nodejs20 \
   --region=us-central1 \
   --source=. \
   --entry-point=rbot \
   --trigger-http \
+  --min-instances 5 \
+  --cpu 1 \
+  --memory 2048MB \
+  --concurrency 10 \
   --allow-unauthenticated \
-  --set-env-vars DEBUG="telegraf:*" \
   --set-env-vars DFX_NETWORK=mainet \
-  --set-env-vars RBOT_TOKEN_SYMBOL=RUNES \
-  --set-env-vars RBOT_BOT_USERNAME=helloworld_icp_bot \
+  --set-env-vars RBOT_TOKEN_SYMBOL=HOPE•YOU•GET•RICH \
+  --set-env-vars RBOT_TOKEN_DECIMALS=2 \
+  --set-env-vars RBOT_BOT_USERNAME=RE00bot \
   --set-env-vars RBOT_CANISTER_ID=pqtoi-6iaaa-aaaal-ad7rq-cai \
   --set-env-vars RBOT_WEBHOOK_PATH=/ \
-  --set-secrets  RBOT_BOT_TOKEN=projects/398338012986/secrets/socialfi-agent-rbot-bot-token:1 \
-  --set-secrets  RBOT_SECRET_TOKEN=projects/398338012986/secrets/socialfi-agent-rbot-secret-token:1 \
+  --set-secrets  RBOT_BOT_TOKEN=projects/398338012986/secrets/socialfi-agent-re00bot-bot-token:2 \
+  --set-secrets  RBOT_SECRET_TOKEN=projects/398338012986/secrets/socialfi-agent-re00bot-secret-token:1 \
+  --set-secrets  SOCIALFI_AGENT_MNEMONIC=projects/398338012986/secrets/socialfi-agent-mnemonic:1 \
+  --set-secrets  SOCIALFI_AGENT_DERIVE_PATH=projects/398338012986/secrets/socialfi-agent-derive-path:1 \
   --set-env-vars DB_INSTANCE_CONNECTION_NAME=octopus-dev-309403:asia-east1:octopus \
   --set-env-vars DB_NAME=socialfi-agent \
   --set-env-vars DB_USER=gateway \
   --set-secrets  DB_PASS=projects/398338012986/secrets/socialfi-agent-db-password:3 \
   --service-account socialfi-agent@octopus-dev-309403.iam.gserviceaccount.com
 
+--set-env-vars DEBUG="telegraf:*" \
+```
+
+```
+agent principal
+w45ib-wppi2-gnn36-d2s7x-tnk77-gaksv-yn2xe-vludw-hzcav-tjezy-6ae
+```
+
+### sql
+search `CREATE TABLE`
+
+
+### tg
+- icon
+- describe
+- cmd
+```
+start - Start RedEnvelope game
+wallet - My wallet
+list - List my RE
+help - Show help commands
+```
+
+### GCP
+```
+https://console.cloud.google.com/security/secret-manager?hl=zh-cn&project=octopus-dev-309403
+https://console.cloud.google.com/security/kms/keyrings?hl=zh-cn&project=octopus-dev-309403
 ```
 
 
@@ -80,11 +86,26 @@ gcloud functions deploy helloworld \
   --entry-point=helloworld \
   --trigger-http \
   --allow-unauthenticated \
-  --set-env-vars DEBUG=telegraf:* \
+  --set-env-vars DEBUG="telegraf:*" \
   --set-env-vars DFX_NETWORK=mainet \
   --set-env-vars HELLOWORLD_CANISTER_ID=gb6fh-2yaaa-aaaal-ad6cq-cai \
   --set-env-vars HELLOWORLD_WEBHOOK_PATH=/ \
   --set-secrets HELLOWORLD_BOT_TOKEN=socialfi-agent-helloworld-bot-token:1 \
   --set-secrets HELLOWORLD_SECRET_TOKEN=socialfi-agent-helloworld-secret-token:1
+
+```
+
+### 
+```
+测试token
+https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=pzqfu-iaaaa-aaaal-ad7qa-cai
+
+测试whoami
+gb6fh-2yaaa-aaaal-ad6cq-cai
+
+红包
+https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=pqtoi-6iaaa-aaaal-ad7rq-cai
+
+
 
 ```

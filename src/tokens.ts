@@ -1,7 +1,11 @@
 import Knex from 'knex';
 import { Connector, IpAddressTypes } from '@google-cloud/cloud-sql-connector'
 
+let knexInstance: Knex.Knex<any, unknown[]> | null = null;
+
 export const createPool = async () => {
+  if (knexInstance) return knexInstance
+
   const connector = new Connector();
   const clientOpts = await connector.getOptions({
     instanceConnectionName: process.env.DB_INSTANCE_CONNECTION_NAME || "",
@@ -17,33 +21,44 @@ export const createPool = async () => {
       database: process.env.DB_NAME,
     },
     pool: {
-      max: 5,
+      max: 10,
       min: 5,
       acquireTimeoutMillis: 60000,
       createTimeoutMillis: 30000,
       idleTimeoutMillis: 600000,
       createRetryIntervalMillis: 200,
     }
-  };
+  }
   const knex = Knex(dbConfig)
   try {
     await knex.raw('SELECT now()')
-    return knex
+    knexInstance = knex
+    return knexInstance
   } catch (error) {
     throw new Error('Unable to connect to Postgres via Knex. Ensure a valid connection.')
   }
 };
 
+/*
+CREATE TABLE tokens (
+  symbol TEXT PRIMARY KEY,
+  canister TEXT NOT NULL,
+  re_minimum_each TEXT NOT NULL,
+  fee_ratio number NOT NULL,
+  fee_address TEXT NOT NULL,
+  create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX tokens_canister_idx ON public.tokens (canister);
+*/
 export interface Token {
   symbol: string;
   canister: string;
-  re_maximum: bigint;
-  re_minimum: bigint;
   re_minimum_each: bigint;
   fee_ratio: number;
   fee_address: string;
-  createTime?: Date;
-  updateTime?: Date;
+  create_time?: Date;
+  update_time?: Date;
 }
 
 export const insertToken = async (pool: Knex.Knex, token: Token) => {
@@ -81,7 +96,7 @@ export const updateToken = async (pool: Knex.Knex, token: Token) => {
   const { symbol, canister } = token;
   return await pool('tokens')
     .where({ symbol })
-    .update({ canister, updatetime: pool.raw('DEFAULT') }); // TODO
+    .update({ canister, update_time: pool.raw('DEFAULT') }); // TODO
 }
 
 export const deleteToken = async (pool: Knex.Knex, symbol: string) => {
@@ -89,17 +104,3 @@ export const deleteToken = async (pool: Knex.Knex, symbol: string) => {
     .where({ symbol })
     .delete();
 }
-
-
-// CREATE TABLE tokens (
-//   symbol TEXT PRIMARY KEY,
-//   canister TEXT NOT NULL,
-//   re_maximum TEXT NOT NULL,
-//   re_minimum TEXT NOT NULL,
-//   re_minimum_each TEXT NOT NULL,
-//   fee_ratio number NOT NULL,
-//   fee_address TEXT NOT NULL,
-//   createTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-//   updateTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-// );
-// CREATE INDEX tokens_canister_idx ON public.tokens (canister);

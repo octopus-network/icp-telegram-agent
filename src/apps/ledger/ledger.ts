@@ -55,3 +55,8 @@ export async function icrc2Approve(token: Token, userid: number, amount: Tokens)
   const actor = await getTokenActor(token, userid, true);
   return actor.icrc2_approve(approveArgs)
 }
+
+export async function icrc1Fee(token: Token, userid: number): Promise<bigint> {
+  const actor = await getTokenActor(token, userid, true);
+  return actor.icrc1_fee()
+}

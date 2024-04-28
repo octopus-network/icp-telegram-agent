@@ -1,19 +1,33 @@
+import hdkey from 'hdkey';
+import { mnemonicToSeedSync } from 'bip39';
 import { Principal } from '@dfinity/principal';
-import { Ed25519KeyIdentity, DelegationChain, DelegationIdentity } from "@dfinity/identity";
-import { sha256 } from '@noble/hashes/sha256'
+import { DelegationChain, DelegationIdentity } from "@dfinity/identity";
+import { Secp256k1KeyIdentity } from "@dfinity/identity-secp256k1";
 
-export function getAgentIdentity(): Ed25519KeyIdentity {
-  const seed = sha256(new Uint8Array([0, 1, 2, 3])) // TODO: sha256
-  const identity = Ed25519KeyIdentity.generate(seed);
+
+function deriveKey(id: number, path?: string): hdkey {
+  const seed = mnemonicToSeedSync(process.env.SOCIALFI_AGENT_MNEMONIC!)
+  const root = hdkey.fromMasterSeed(seed)
+  if (path) {
+    return root.derive(path)
+  } else {
+    const quotient = Math.floor(id / 2147483647) // 0x7FFFFFFF
+    const remainder = id % 2147483647 // 0x7FFFFFFF
+    const path = `m/44'/223'/0'/${quotient}/${remainder}`
+    return root.derive(path)
+  }
+}
+
+export function getAgentIdentity(): Secp256k1KeyIdentity {
+  const path = process.env.SOCIALFI_AGENT_DERIVE_PATH || "m/44'/223'/0'/2147483647/2147483647"
+  const key = deriveKey(0, path)
+  const identity = Secp256k1KeyIdentity.fromSecretKey(key.privateKey);
   return identity;
 }
 
-export function getUserIdentity(userId: number): Ed25519KeyIdentity {
-  const buffer = Buffer.alloc(4);
-  const view = new DataView(buffer.buffer);
-  view.setUint32(0, userId);
-  const seed = sha256(new Uint8Array(buffer)) // TODO: sha256
-  const identity =  Ed25519KeyIdentity.generate(seed);
+export function getUserIdentity(userId: number): Secp256k1KeyIdentity {
+  const key = deriveKey(userId)
+  const identity = Secp256k1KeyIdentity.fromSecretKey(key.privateKey);
   return identity;
 }
 
@@ -31,8 +45,4 @@ export async function delegateIdentity(userId: number, canisterId: string) {
   );
   const identity = DelegationIdentity.fromDelegation(agentIdentity, delegationChain);
   return identity;
-}
-
-export function hasUserIdentity(userId: number): boolean{
-  return true
 }
