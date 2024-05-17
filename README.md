@@ -17,13 +17,13 @@ gcloud functions deploy RE00bot \
   --source=. \
   --entry-point=rbot \
   --trigger-http \
-  --min-instances 5 \
+  --min-instances 0 \
   --cpu 1 \
   --memory 2048MB \
   --concurrency 10 \
   --allow-unauthenticated \
   --set-env-vars DFX_NETWORK=mainet \
-  --set-env-vars RBOT_TOKEN_SYMBOL=HOPE•YOU•GET•RICH \
+  --set-env-vars RBOT_TOKEN_SYMBOL=TEST•RICH \
   --set-env-vars RBOT_TOKEN_DECIMALS=2 \
   --set-env-vars RBOT_BOT_USERNAME=RE00bot \
   --set-env-vars RBOT_CANISTER_ID=pqtoi-6iaaa-aaaal-ad7rq-cai \
@@ -36,6 +36,7 @@ gcloud functions deploy RE00bot \
   --set-env-vars DB_NAME=socialfi-agent \
   --set-env-vars DB_USER=gateway \
   --set-secrets  DB_PASS=projects/398338012986/secrets/socialfi-agent-db-password:3 \
+  --set-env-vars SWAP_CANISTER_ID=dvqk4-diaaa-aaaal-ajdfa-cai \
   --service-account socialfi-agent@octopus-dev-309403.iam.gserviceaccount.com
 
 --set-env-vars DEBUG="telegraf:*" \
@@ -98,7 +99,7 @@ gcloud functions deploy helloworld \
 ### 
 ```
 测试token
-https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=pzqfu-iaaaa-aaaal-ad7qa-cai
+https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=ugaqt-wqaaa-aaaar-qafgq-cai
 
 测试whoami
 gb6fh-2yaaa-aaaal-ad6cq-cai

@@ -6,8 +6,9 @@
   "scripts": {
     "build": "npx tsc",
     "start": "npx functions-framework --target=healthz",
+    "copy-files": "cp -r ./src/apps/rbot/static/ ./dist/apps/rbot/static/",
     "prestart": "npm run build",
-    "gcp-build": "npm run build"
+    "gcp-build": "npm run build && npm run copy-files"
   },
   "author": "",
   "license": "ISC",
@@ -25,15 +26,18 @@
     "@dfinity/candid": "^1.0.1",
     "@dfinity/identity": "^1.0.1",
     "@dfinity/identity-secp256k1": "^1.0.1",
+    "@dfinity/ledger-icp": "^2.2.3",
     "@dfinity/principal": "^1.0.1",
     "@google-cloud/cloud-sql-connector": "^1.2.4",
     "@google-cloud/functions-framework": "^3.3.0",
+    "bitcoinjs-lib": "^6.1.5",
     "express": "^4.18.3",
     "hdkey": "^2.1.0",
     "i18next": "^23.10.1",
     "isomorphic-fetch": "^3.0.0",
     "knex": "^3.1.0",
     "pg": "^8.11.3",
+    "sharp": "^0.33.3",
     "table": "^6.8.2",
     "telegraf": "^4.16.3"
   }

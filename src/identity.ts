@@ -31,7 +31,7 @@ export function getUserIdentity(userId: number): Secp256k1KeyIdentity {
   return identity;
 }
 
-export async function delegateIdentity(userId: number, canisterId: string) {
+export async function delegateIdentity(userId: number, canisterId?: string) {
   const agentIdentity = getAgentIdentity();
   const userIdentity = getUserIdentity(userId)
 
@@ -40,7 +40,7 @@ export async function delegateIdentity(userId: number, canisterId: string) {
     agentIdentity.getPublicKey(),
     undefined,
     {
-      targets: [Principal.fromText(canisterId)],
+      targets: canisterId ? [Principal.fromText(canisterId)] : undefined,
     },
   );
   const identity = DelegationIdentity.fromDelegation(agentIdentity, delegationChain);

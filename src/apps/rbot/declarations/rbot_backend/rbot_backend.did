@@ -1,5 +1,16 @@
-type RedEnvelope = record {
+type OldEnvelope = record {
   num : nat8;
+  status : nat8;
+  participants : vec record { principal; nat };
+  token_id : principal;
+  owner : principal;
+  memo : text;
+  is_random : bool;
+  amount : nat;
+  expires_at : opt nat64;
+};
+type RedEnvelope = record {
+  num : nat16;
   status : nat8;
   participants : vec record { principal; nat };
   token_id : principal;
@@ -18,12 +29,14 @@ service : (principal) -> {
   get_admin_acc : () -> (principal) query;
   get_caller_and_apiid : () -> (principal, principal) query;
   get_need_transfer_from_status : () -> (bool) query;
+  get_old_red_envelope : (nat) -> (opt OldEnvelope) query;
   get_red_envelope : (nat) -> (opt RedEnvelope) query;
   get_rids_by_owner : (principal) -> (vec nat) query;
   get_rids_by_participant : (principal) -> (vec nat) query;
   get_storage_version : () -> (nat64) query;
   is_admin_acc : () -> (bool) query;
   is_agent_acc : (principal) -> (bool) query;
+  is_there_pre_allocated_random : (nat) -> (bool) query;
   is_token_in_white_list : (principal) -> (bool) query;
   open_red_envelope : (nat, principal) -> (Result_1);
   remove_token_from_white_list : (principal) -> (Result);

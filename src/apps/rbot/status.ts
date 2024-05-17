@@ -13,8 +13,10 @@ CREATE TABLE re_status (
   is_revoked bool DEFAULT FALSE,
   is_done bool DEFAULT FALSE,
   receiver TEXT,
-  send_time TIMESTAMP
+  send_time TIMESTAMP,
+  create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX re_status_send_time_idx ON public.re_status (send_time);
 */
 export interface ReStatus {
   id: number;
@@ -29,6 +31,7 @@ export interface ReStatus {
   // is_done?: boolean;
   receiver?: string;
   send_time?: Date;
+  create_time?: Date;
 }
 
 export const insertReStatus = async (pool: Knex.Knex, status: ReStatus) => {
@@ -85,6 +88,34 @@ export const getReStatusByIds = async (pool: Knex.Knex, ids: number[], uid: numb
     .select() as ReStatus[]
 }
 
+export const getReCount = async (pool: Knex.Knex, duration?: number): Promise<number> => {
+  let query = pool('re_status')
+    .count<Record<string, number>>('id as count')
+    .where('is_sent', true)
+
+  if (duration) {
+    const startTime = new Date((new Date()).getTime() - duration * 1000)
+    query = query.where('send_time', '>=', startTime.toISOString())
+  }
+
+  const result = await query.first()
+  return result?.count || 0
+}
+
+export const getReAmount = async (pool: Knex.Knex, duration?: number): Promise<string> => {
+  let query = pool('re_status')
+    .sum<Record<string, number>>({ sum: pool.raw('CAST(amount AS bigint)') })
+    .where('is_sent', true)
+
+  if (duration) {
+    const startTime = new Date((new Date()).getTime() - duration * 1000)
+    query = query.where('send_time', '>=', startTime.toISOString())
+  }
+
+  const result = await query.first()
+  return result?.sum.toString() || '0'
+}
+
 /*
 CREATE TABLE snatch_status (
   id bigint NOT NULL,
@@ -92,8 +123,10 @@ CREATE TABLE snatch_status (
   code int8 DEFAULT -1 NOT NULL,
   amount text NOT NULL,
   discard int8 DEFAULT 0 NOT NULL,
+  create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_id_uid UNIQUE (id, uid)
 );
+CREATE INDEX snatch_status_create_time_idx ON public.snatch_status (create_time);
 */
 export interface SnatchStatus {
   id: number;
@@ -101,6 +134,7 @@ export interface SnatchStatus {
   code: number;
   amount: bigint;
   discard: number;
+  create_time?: Date;
 }
 
 export const insertSnatchStatus = async (pool: Knex.Knex, status: SnatchStatus) => {
@@ -138,28 +172,84 @@ export const updateSnatchStatus = async (pool: Knex.Knex, status: SnatchStatus) 
     });
 }
 
+export const getSnatchCount = async (pool: Knex.Knex, duration?: number): Promise<number> => {
+  let query = pool('snatch_status')
+    .count<Record<string, number>>({ count: '*' })
+
+  if (duration) {
+    const startTime = new Date((new Date()).getTime() - duration * 1000)
+    query = query.where('create_time', '>=', startTime.toISOString())
+  }
+
+  const result = await query.first()
+  return result?.count || 0
+}
+
 /*
 CREATE TABLE wallets (
   uid bigint PRIMARY KEY,
   principal TEXT NOT NULL,
-  create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  channel bigint
 );
+CREATE INDEX wallets_create_time_idx ON public.wallets (create_time);
 */
 export interface Wallet {
   uid: number;
   principal: string;
   create_time?: Date;
+  channel?: number;
 }
 
 export const insertWallet = async (pool: Knex.Knex, wallet: Wallet) => {
   await pool('wallets')
     .insert({ ...wallet })
     .onConflict('uid')
-    .ignore();
+    .merge({
+      channel: pool.raw('COALESCE(wallets.channel, EXCLUDED.channel)'),
+    })
+    .whereNull('wallets.channel')
 }
 
 export const getWallet = async (pool: Knex.Knex, uid: number) => {
   return await pool('wallets')
     .where({ uid })
     .first() as Wallet | undefined
+}
+
+export const getWalletCount = async (pool: Knex.Knex, duration?: number): Promise<number> => {
+  let query = pool('wallets')
+    .count<Record<string, number>>('uid as count')
+
+  if (duration) {
+    const startTime = new Date((new Date()).getTime() - duration * 1000)
+    query = query.where('create_time', '>=', startTime.toISOString())
+  }
+
+  const result = await query.first()
+  return result?.count || 0
+}
+
+
+/*
+CREATE TABLE users (
+  uid bigint PRIMARY KEY,
+  username text,
+  update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+*/
+export interface User {
+  uid: number;
+  username?: string;
+  update_time?: Date;
+}
+
+export const insertUser = async (pool: Knex.Knex, user: User) => {
+  await pool('users')
+    .insert({ ...user })
+    .onConflict(['uid'])
+    .merge({
+      username: user.username,
+      update_time: pool.fn.now(),
+    });
 }

@@ -1,62 +1,28 @@
-import type { ActorSubclass } from "@dfinity/agent";
-import { Principal } from '@dfinity/principal';
-import { createActor } from './declarations/icrc1_ledger_canister';
-import { _SERVICE } from "./declarations/icrc1_ledger_canister/icrc1_ledger_canister.did";
-import type { Account, Tokens, TransferArg, TransferResult, ApproveArgs, ApproveResult } from "./declarations/icrc1_ledger_canister/icrc1_ledger_canister.did.d.ts";
-// import type {  icrc1_ledger_canister } from "./declarations/icrc1_ledger_canister";
+import { createAgent } from "@dfinity/utils"
+import { LedgerCanister, AccountIdentifier } from "@dfinity/ledger-icp"
 
-import { makeAgent } from '../../utils'
 import { getAgentIdentity, getUserIdentity, delegateIdentity } from '../../identity'
-import type { Token } from '../../tokens'
 
-async function getTokenActor(token: Token, userid: number, delegation: boolean): Promise<ActorSubclass<_SERVICE>> {
-  if (delegation) {
-    const identity = await delegateIdentity(userid, token.canister);
-    const agent = await makeAgent({ fetch, identity })
-    return createActor(token.canister, { agent })
-  } else {
-    const identity = getAgentIdentity();
-    const agent = await makeAgent({ fetch, identity })
-    return createActor(token.canister, { agent })
+async function getLedgerActor(userid: number, delegation: boolean): Promise<LedgerCanister> {
+  const identity = delegation ? await delegateIdentity(userid) : getUserIdentity(userid)
+  const agent = await createAgent({ identity, host: 'https://icp-api.io' })
+  return LedgerCanister.create({ agent })
+}
+
+export async function ledgerTransfer(userid: number, amount: bigint, to: AccountIdentifier) {
+  const transferArg = {
+    to, 
+    amount
   }
+  const actor = await getLedgerActor(userid, true)
+  return actor.transfer(transferArg)
 }
 
-export async function icrc1BalanceOf(token: Token, userid: number): Promise<bigint> {
-  const principal = getUserIdentity(userid).getPrincipal()
-  const account: Account = { owner: principal, subaccount: [] }
-  const actor = await getTokenActor(token, userid, true);
-  return actor.icrc1_balance_of(account)
-}
-
-export async function icrc1Transfer(token: Token, userid: number, amount: Tokens, to: Principal): Promise<TransferResult> {
-  const transferArg: TransferArg = {
-    from_subaccount: [],
-    to: { owner: to, subaccount: [] },
-    amount,
-    fee: [],
-    memo: [],
-    created_at_time: []
+export async function ledgerAccountBalance(userid: number, account: string) {
+  const balanceArg = {
+    accountIdentifier: account, 
+    certified: false
   }
-  const actor = await getTokenActor(token, userid, true);
-  return actor.icrc1_transfer(transferArg)
-}
-
-export async function icrc2Approve(token: Token, userid: number, amount: Tokens): Promise<ApproveResult> {
-  const approveArgs: ApproveArgs = {
-    from_subaccount: [],
-    spender: { owner: Principal.fromText(token.canister), subaccount: [] },
-    amount,
-    expected_allowance: [],
-    fee: [],
-    memo: [],
-    created_at_time: [],
-    expires_at: []
-  }
-  const actor = await getTokenActor(token, userid, true);
-  return actor.icrc2_approve(approveArgs)
-}
-
-export async function icrc1Fee(token: Token, userid: number): Promise<bigint> {
-  const actor = await getTokenActor(token, userid, true);
-  return actor.icrc1_fee()
+  const actor = await getLedgerActor(userid, true)
+  return actor.accountBalance(balanceArg)
 }

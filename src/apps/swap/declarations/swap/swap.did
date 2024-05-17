@@ -1,0 +1,66 @@
+type LiquidityPool = record {
+  k : text;
+  y_supply : text;
+  y_meta : TokenMeta;
+  tx_fee : text;
+  x_supply : text;
+  x_meta : TokenMeta;
+};
+type LiquidityProvider = record {
+  id : principal;
+  first : record { principal; text };
+  second : record { principal; text };
+};
+type Result = variant { Ok; Err : SwapError };
+type Result_1 = variant { Ok : record { text; text }; Err : SwapError };
+type Result_2 = variant { Ok : text; Err : SwapError };
+type SwapArgs = record {
+  from : principal;
+  invoice : opt nat64;
+  allowed_slippage : opt text;
+  enable_partially_fill : bool;
+  amount : text;
+  ref_price : text;
+};
+type SwapError = variant {
+  Overflow;
+  IcLedger : text;
+  TooSmallFunds;
+  InvalidPool;
+  InvalidLiquidity;
+  InvalidInvoice;
+  InvalidRequirements;
+  TransferFrom : TransferFromError;
+  InsufficientFunds;
+};
+type TokenMeta = record {
+  id : principal;
+  fee : text;
+  decimals : nat8;
+  logo : text;
+  issuance : text;
+  symbol : text;
+};
+type TransferFromError = variant {
+  GenericError : record { message : text; error_code : nat };
+  TemporarilyUnavailable;
+  InsufficientAllowance : record { allowance : nat };
+  BadBurn : record { min_burn_amount : nat };
+  Duplicate : record { duplicate_of : nat };
+  BadFee : record { expected_fee : nat };
+  CreatedInFuture : record { ledger_time : nat64 };
+  TooOld;
+  InsufficientFunds : record { balance : nat };
+};
+service : (principal) -> {
+  add_liquidity : () -> (Result);
+  avaliable_and_price : (principal, text) -> (Result_1) query;
+  contribution : (principal) -> (LiquidityProvider) query;
+  deposit : (principal, text, opt nat64) -> (Result_2);
+  pool : () -> (LiquidityPool) query;
+  remove_liquidity : () -> (Result);
+  setup : (principal, principal, text) -> (Result);
+  swap : (SwapArgs) -> (Result_1);
+  withdraw : (principal, text) -> (Result);
+  withdrawable : (principal) -> (text, text) query;
+}
