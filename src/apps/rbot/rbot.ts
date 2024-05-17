@@ -295,6 +295,16 @@ bot.action('showHowToTransfer', ctx => {
   ctx.reply(ctx.i18n('msg_how_to_transfer'))
 })
 
+bot.action('showPreswap', ctx => {
+  // ctx.telegram.webhookReply = true
+  ctx.reply(ctx.i18n('msg_how_to_preswap'))
+})
+
+bot.action('showSwap', ctx => {
+  // ctx.telegram.webhookReply = true
+  ctx.reply(ctx.i18n('msg_how_to_swap'))
+})
+
 bot.action('showREs', async ctx => {
   // ctx.telegram.webhookReply = false
   // collect user profile
@@ -407,6 +417,10 @@ const RBOT_START_IN_PRIVATE_KEYBOARD = (i18n: TFunction) => {
       [
         { text: i18n('btn_wallet'), callback_data: "showWallet" },
         { text: i18n('btn_transfer'), callback_data: "showHowToTransfer" },
+      ],
+      [
+        { text: i18n('btn_preswap'), callback_data: "showPreswap" },
+        { text: i18n('btn_swap'), callback_data: "showSwap" },
       ],
       [
         { text: i18n('btn_language'), callback_data: "switchLanguage" },

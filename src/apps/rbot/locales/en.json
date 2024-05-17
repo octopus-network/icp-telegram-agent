@@ -43,6 +43,8 @@
 		"btn_revoke_re": "Revoke RE",
 		"btn_wallet": "My Wallet",
 		"btn_transfer": "Transfer",
+		"btn_preswap": "Preswap",
+		"btn_swap": "Swap",
 		"btn_language": "EN/中文",
 		"btn_help": "Help",
 		"btn_snatch": "SNATCH",
