@@ -32,7 +32,7 @@
 		"msg_transfer": "Transfer {{amount}} $RICH succeeds.",
 		"msg_transfer_icp": "Transfer {{amount}} $ICP succeeds.",
 		"msg_transfer_failed": "Transfer failed. {{error}}",
-		"msg_transfer_btc": "Fee: {{fee}} ICP\nTicket_ID: {{id}}\nIt usually takes an hour to receive RICH on Bitcoin. If something goes wrong, ask for help on Ominty Discord  https://discord.gg/6GTJBkZA9Q , presenting the Ticket_ID to supporters.",
+		"msg_transfer_btc": "Fee: {{fee}} ICP\nTicket_ID: {{id}}\nIt usually takes an hour to receive RICH on Bitcoin. If something goes wrong, ask for help on Omnity Discord  https://discord.gg/6GTJBkZA9Q , presenting the Ticket_ID to supporters.",
 		"msg_preswap_failed": "Preswap failed. {{error}}",
 		"msg_preswap_notice": "Execute /swap quickly if the price is good because it keeps changing. Swap here is only for casual usage. For serious trading, please visit https://www.helixmarkets.io/ or https://iclight.io/",
 		"msg_swap_failed": "Swap failed. {{error}}",
