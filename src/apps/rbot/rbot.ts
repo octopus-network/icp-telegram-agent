@@ -218,7 +218,13 @@ bot.on(message('chat_shared'), async ctx => {
           // update re is_sent receiver send_time
           // await S.updateReStatusIsSent(await createPool(), requestId, true)
           await S.updateReStatusReceiver(await createPool(), requestId, `g_${chatId}`)
-          ctx.reply(ctx.i18n('msg_send_group'), Markup.removeKeyboard())
+          const chat = await ctx.telegram.getChat(chatId)
+          if (chat.type === 'group' || chat.type === 'supergroup') {
+            ctx.reply(ctx.i18n('msg_send_group', {
+              id: requestId,
+              group: chat.title,
+            }), Markup.removeKeyboard())
+          }
         } catch (error) {
           const msg = ctx.i18n('msg_send_failed_group', { botname: BOT_USERNAME })
           ctx.reply(msg, Markup.removeKeyboard())
@@ -250,8 +256,12 @@ bot.on(message('users_shared'), async ctx => {
         })
         // update re is_sent receiver send_time
         // await S.updateReStatusIsSent(await createPool(), requestId, true)
+        const chat_member = await ctx.telegram.getChatMember(user_ids[0], user_ids[0])
         await S.updateReStatusReceiver(await createPool(), requestId, `u_${user_ids[0]}`)
-        ctx.reply(ctx.i18n('msg_send_user'), Markup.removeKeyboard())
+        ctx.reply(ctx.i18n('msg_send_user', {
+          id: requestId,
+          user: chat_member.user.first_name,
+        }), Markup.removeKeyboard())
       } catch (error) {
         const msg = ctx.i18n('msg_send_failed_user', { botname: BOT_USERNAME })
         ctx.reply(msg, Markup.removeKeyboard())
