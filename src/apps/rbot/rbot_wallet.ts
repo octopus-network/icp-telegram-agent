@@ -199,12 +199,35 @@ export async function transferToken(userId: number, args: string[], i18n: TFunct
   }
 }
 
+// function isValidBitcoinAddress(address: string): boolean {
+//   try {
+//     bitcoin.address.toOutputScript(address)
+//     return true
+//   } catch (err) {
+//     return false
+//   }
+// }
+
 function isValidBitcoinAddress(address: string): boolean {
-  try {
-    bitcoin.address.toOutputScript(address)
-    return true
-  } catch (err) {
-    return false
+  const base58checkRegex = /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/
+  const bech32Regex = /^(bc1)[a-zA-HJ-NP-Z0-9]{25,59}$/
+
+  if (base58checkRegex.test(address)) {
+      try {
+          const base58checkResult = bitcoin.address.fromBase58Check(address)
+          return true
+      } catch (error) {
+          return false
+      }
+  } else if (bech32Regex.test(address)) {
+      try {
+          const bech32Result = bitcoin.address.fromBech32(address)
+          return true
+      } catch (error) {
+          return false
+      }
+  } else {
+      return false
   }
 }
 
