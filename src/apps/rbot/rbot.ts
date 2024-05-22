@@ -187,14 +187,71 @@ bot.command('swap', async ctx => {
 
 bot.on(message('text'), async ctx => {
   // ctx.telegram.webhookReply = true
-  if (ctx.message.chat.id > 0) {
-    // collect user profile
-    await S.insertUser(await createPool(), {
-      uid: ctx.message.from.id,
-      username: ctx.message.from.username,
-    })
+  const chatType = ctx.message.chat.type
+  if (chatType !== "private") {
+    return
+  }
 
-    ctx.replyWithHTML(ctx.i18n('msg_help'))
+  // collect user profile
+  const userId = ctx.message.from.id
+  const username = ctx.message.from.username
+  await S.insertUser(await createPool(), {
+    uid: userId,
+    username: username,
+  })
+
+  const [cmd, ...args] = ctx.message.text.split(' ')
+  switch (cmd) {
+    case 'wallet':
+      ctx.replyWithHTML(await showWallet(userId, ctx.i18n))
+      break
+
+    case 'transfer':
+      ctx.reply(await transferToken(
+        userId,
+        args.map(arg => arg.trim()).filter(arg => arg !== ''),
+        ctx.i18n
+      ))
+      break
+
+    case 'create':
+      const [_, _args] = ctx.message.text.split(/ (.+)/, 2)
+      const [message, markup] = await createRedEnvelope(userId, _args, ctx.i18n)
+      ctx.reply(message, markup)
+      break
+
+    case 'list':
+      ctx.replyWithHTML(await listRedEnvelope(userId, args, ctx.i18n))
+      break
+
+    case 'send':
+      const [_message, _markup] = await sendRedEnvelope(userId, args, ctx.i18n)
+      ctx.replyWithHTML(_message, _markup)
+      break
+
+    case 'revoke':
+      ctx.reply(await revokeRedEnvelope(userId, args, ctx.i18n))
+      break
+
+    case 'preswap':
+      ctx.reply(await getSwapPrice(
+        userId,
+        args.map(arg => arg.trim()).filter(arg => arg !== ''),
+        ctx.i18n
+      ))
+      break
+
+    case 'swap':
+      ctx.reply(await doSwap(
+        userId,
+        args.map(arg => arg.trim()).filter(arg => arg !== ''),
+        ctx.i18n
+      ))
+      break
+
+    default:
+      ctx.replyWithHTML(ctx.i18n('msg_help'))
+      break
   }
 })
 
