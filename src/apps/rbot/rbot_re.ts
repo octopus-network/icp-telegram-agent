@@ -267,7 +267,7 @@ export async function listRedEnvelope(userId: number, args: string[], i18n: TFun
 
   // page
   let page = 1
-  const max = Math.ceil(rids.length / 20)
+  const max = Math.ceil(rids.length / 10)
   if (args.length >= 1) {
     const num = Number(args[0])
     if (num > 0 && Number.isInteger(num)) {
@@ -280,8 +280,8 @@ export async function listRedEnvelope(userId: number, args: string[], i18n: TFun
 
   // sort slice 
   const sorted = rids.sort((a, b) => Number(b) - Number(a))
-  const startIndex = (page - 1) * 20
-  const endIndex = page * 20
+  const startIndex = (page - 1) * 10
+  const endIndex = page * 10
   const pageData = sorted.slice(startIndex, endIndex)
   const pageDataNumber = pageData.map(bigint => Number(bigint))
   // console.log('listRedEnvelope t1: ', (new Date()).toISOString())
