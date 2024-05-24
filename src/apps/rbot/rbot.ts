@@ -6,7 +6,7 @@ import { getUserIdentity } from '../../identity'
 import { createPool } from '../../tokens'
 import { getSwapPrice, doSwap } from './rbot_swap';
 import { showWallet, transferToken } from './rbot_wallet'
-import { createRedEnvelope, sendRedEnvelope, grabRedEnvelope, revokeRedEnvelope, listRedEnvelope, showRedEnvelope, isRedEnvelopeEmpty, errorWithRedEnvelopeId } from './rbot_re'
+import { createRedEnvelope, sendRedEnvelope, grabRedEnvelope, revokeRedEnvelope, listRedEnvelope, showRedEnvelope, isRedEnvelopeEmpty, errorWithRedEnvelopeId, parseShareLink } from './rbot_re'
 import i18next, { I18nContext, getLanguage, setLanguage } from "./i18n"
 import * as S from "./status"
 
@@ -40,24 +40,46 @@ bot.use(async (ctx, next) => {
 bot.command('start', async ctx => {
   // ctx.telegram.webhookReply = true
   const chatType = ctx.message.chat.type
-  if (chatType === "private") {
-    // record wallet creation
-    const userId = ctx.message.from.id
-    const wallet = { uid: userId, principal: getUserIdentity(userId).getPrincipal().toText() }
-    await S.insertWallet(await createPool(), wallet)
-
-    // collect user profile
-    await S.insertUser(await createPool(), {
-      uid: ctx.message.from.id,
-      username: ctx.message.from.username,
-    })
-
-    ctx.replyWithPhoto(RE_START_PICTURE, {
-      caption: ctx.i18n('msg_start'),
-      parse_mode: "HTML",
-      reply_markup: RBOT_START_IN_PRIVATE_KEYBOARD(ctx.i18n)
-    })
+  if (chatType !== "private") {
+    return
   }
+
+  // record wallet creation
+  const userId = ctx.message.from.id
+  const wallet = { uid: userId, principal: getUserIdentity(userId).getPrincipal().toText() }
+  await S.insertWallet(await createPool(), wallet)
+
+  // collect user profile
+  await S.insertUser(await createPool(), {
+    uid: ctx.message.from.id,
+    username: ctx.message.from.username,
+  })
+
+  // share link
+  const parsed = parseShareLink(ctx.payload)
+  if (parsed) {
+    const splited = parsed.split('_')
+    // snatch_uid_rid
+    if (splited.length === 3 && splited[0] === 'snatch') {
+      const sender = await ctx.telegram.getChatMember(Number(splited[1]), Number(splited[1]))
+      const username = sender.user.username ? `@${sender.user.username}` : sender.user.first_name
+      const [message, cover, markup] = await showRedEnvelope(username, [splited[2]], ctx.i18n)
+      if (cover && markup) {
+        ctx.replyWithPhoto({ source: cover }, {
+          caption: message,
+          ...markup,
+          parse_mode: 'HTML'
+        })
+        return
+      }
+    }
+  }
+  // start
+  ctx.replyWithPhoto(RE_START_PICTURE, {
+    caption: ctx.i18n('msg_start'),
+    parse_mode: "HTML",
+    reply_markup: RBOT_START_IN_PRIVATE_KEYBOARD(ctx.i18n)
+  })
 })
 
 bot.command('help', async ctx => {

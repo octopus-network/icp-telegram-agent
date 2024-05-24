@@ -32,6 +32,7 @@ gcloud functions deploy RE00bot \
   --set-secrets  RBOT_SECRET_TOKEN=projects/398338012986/secrets/socialfi-agent-re00bot-secret-token:1 \
   --set-secrets  SOCIALFI_AGENT_MNEMONIC=projects/398338012986/secrets/socialfi-agent-mnemonic:1 \
   --set-secrets  SOCIALFI_AGENT_DERIVE_PATH=projects/398338012986/secrets/socialfi-agent-derive-path:1 \
+  --set-secrets  SOCIALFI_AGENT_SECRET_KEY=projects/398338012986/secrets/socialfi-agent-secret-key:1 \
   --set-env-vars DB_INSTANCE_CONNECTION_NAME=octopus-dev-309403:asia-east1:octopus \
   --set-env-vars DB_NAME=socialfi-agent \
   --set-env-vars DB_USER=gateway \
