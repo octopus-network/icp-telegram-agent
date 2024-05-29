@@ -20,6 +20,8 @@
 		"msg_send_group": "红包 {{id}} 已经发送到群 {{group}}",
 		"msg_re_title": "发的红包",
 		"msg_my_re_title": "我的RICH红包",
+		"msg_spreaders": "传播者排行",
+		"msg_referrals": "我推荐的用户",
 		"msg_revoke": "撤回红包金额 {{amount}}",
 		"msg_create": "创建红包 {{id}}，收费 {{fee}}，Runes账本合约收费 {{icrc1_fee}}",
 		"msg_create_insufficient": "账户余额不足，共需要 {{amount}} 钱包余额才能创建",

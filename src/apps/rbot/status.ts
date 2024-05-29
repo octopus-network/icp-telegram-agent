@@ -253,3 +253,78 @@ export const insertUser = async (pool: Knex.Knex, user: User) => {
       update_time: pool.fn.now(),
     });
 }
+
+/*
+SELECT users.username as username, COUNT(w.uid) as referrals
+FROM wallets AS w
+JOIN re_status AS rs ON w.channel = rs.id
+JOIN users ON users.uid = rs.uid
+WHERE w.create_time BETWEEN '2024-04-25' AND '2024-06-25'
+GROUP BY users.username
+ORDER BY COUNT(w.uid) DESC
+LIMIT 10;
+*/
+
+export const getSpreaders = async (pool: Knex.Knex, start: string, end: string) => {
+  return await pool('wallets as w')
+    .select('users.username as username')
+    .count('w.uid as referrals')
+    .join('re_status as rs', 'w.channel', 'rs.id')
+    .join('users', 'users.uid', 'rs.uid')
+    .whereBetween('w.create_time', [start, end])
+    .groupBy('users.username')
+    .orderByRaw('count(w.uid) DESC')
+    .limit(10);
+};
+
+/*
+SELECT w.channel as re_number, users.username as username, w.create_time as date
+FROM wallets AS w
+JOIN re_status AS rs ON w.channel = rs.id
+JOIN users ON users.uid = w.uid
+WHERE rs.uid = 200 AND w.create_time BETWEEN '2024-04-25' AND '2024-06-25'
+GROUP BY re_number, username, date
+ORDER BY date DESC;
+*/
+
+
+export const getReferrals = async (pool: Knex.Knex, start: string, end: string, uid: number, page: number) => {
+  const pageSize = 10;
+
+  // Get total count of records
+  const totalCount = await pool('wallets as w')
+    .join('re_status as rs', 'w.channel', 'rs.id')
+    .join('users', 'users.uid', 'w.uid')
+    .where('rs.uid', uid)
+    .whereBetween('w.create_time', [start, end])
+    .count('* as total');
+
+  let total: number;
+
+  if (typeof totalCount[0].total === 'string') {
+    total = parseInt(totalCount[0].total);
+  } else {
+    total = totalCount[0].total;
+  }
+
+  const totalPages = Math.ceil(total / pageSize);
+  if (page > totalPages) {
+    page = totalPages
+  }
+  const offset = (page - 1) * pageSize;
+  console.log('page: ', page, 'totalPages: ', totalPages, 'offset: ', offset);
+
+  const referrals = await pool('wallets as w')
+    .select('w.channel as re_number', 'users.username as username', 'w.create_time as date')
+    .join('re_status as rs', 'w.channel', 'rs.id')
+    .join('users', 'users.uid', 'w.uid')
+    .where('rs.uid', uid)
+    .whereBetween('w.create_time', [start, end])
+    .groupBy('re_number', 'username', 'date')
+    .orderBy('date', 'desc')
+    .limit(pageSize)
+    .offset(offset);
+
+
+  return { referrals, totalPages };
+};

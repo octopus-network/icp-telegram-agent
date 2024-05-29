@@ -23,6 +23,9 @@ const RBOT_BOT_USERNAME = process.env.RBOT_BOT_USERNAME || ""
 const TOKEN_SYMBOL = process.env.RBOT_TOKEN_SYMBOL || ""
 const TOKEN_DECIMALS = process.env.RBOT_TOKEN_DECIMALS || "2"
 
+const CAMPAIGN_START_DATE = "2024-04-27"
+const CAMPAIGN_END_DATE = "2024-06-27"
+
 export async function createRedEnvelope(userId: number, args: string, i18n: TFunction): Promise<[string, object?]> {
   const token = await getTokenBySymbol(await createPool(), TOKEN_SYMBOL)
   if (!token) {
@@ -391,6 +394,47 @@ async function getAgentActor(): Promise<ActorSubclass<_SERVICE>> {
   const identity = getAgentIdentity();
   const agent = await makeAgent({ fetch, identity })
   return createActor(RBOT_CANISTER_ID, { agent })
+}
+
+export async function listSpreaders(i18n: TFunction) {
+  const spreaders = await S.getSpreaders(await createPool(), CAMPAIGN_START_DATE, CAMPAIGN_END_DATE)
+
+  const data = spreaders.map((spreader, index) =>
+    [String(index + 1), ...Object.values(spreader).map(value => String(value))]
+  );
+  data.unshift(['Rank', 'Username', 'Referrals']);
+  const tableString = table(data, { border: getBorderCharacters('ramac'), })
+  let htmlString = '<b>' + i18n('msg_spreaders') + '</b>' + '\n'
+  htmlString += `<pre>${tableString}</pre>`
+  return htmlString
+}
+
+export async function listReferrals(uid: number, args: string[], i18n: TFunction) {
+  // page
+  let page = 1
+  if (args.length >= 1) {
+    const num = Number(args[0])
+    if (num > 0 && Number.isInteger(num)) {
+      page = num
+    }
+  }
+
+  const {referrals, totalPages} = await S.getReferrals(await createPool(), CAMPAIGN_START_DATE, CAMPAIGN_END_DATE, uid, page)
+
+  const data = referrals.map(referral => {
+    const { re_number, username, date } = referral;
+    const formattedDate = new Date(date);
+    const formattedDateString = `${formattedDate.getFullYear()}-${formattedDate.getMonth()+1}-${formattedDate.getDate()}`;
+    return [re_number, username, formattedDateString];
+  });
+  data.unshift(['No.', 'Username', 'Date']);
+  const tableString = table(data, { border: getBorderCharacters('ramac'), })
+  let htmlString = '<b>' + i18n('msg_referrals') + '</b>' + '\n'
+  htmlString += `<pre>${tableString}</pre>`
+  if (totalPages > 1) {
+    htmlString += `\n【${page}】/【${totalPages}】`
+  }
+  return htmlString
 }
 
 const RBOT_REDENVELOPE_COVER = async (id: string, amount: bigint, count: number) => {
