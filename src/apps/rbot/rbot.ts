@@ -137,6 +137,7 @@ bot.command('create', async ctx => {
   const chatType = ctx.message.chat.type
   const [_, args] = ctx.message.text.split(/ (.+)/, 2);
   if (chatType === "private") {
+    ctx.reply(ctx.i18n('msg_create_waiting'))
     const [message, markup] = await createRedEnvelope(userId, args, ctx.i18n)
     ctx.reply(message, markup)
   }
@@ -237,6 +238,7 @@ bot.on(message('text'), async ctx => {
       break
 
     case 'create':
+      ctx.reply(ctx.i18n('msg_create_waiting'))
       const [_, _args] = ctx.message.text.split(/ (.+)/, 2)
       const [message, markup] = await createRedEnvelope(userId, _args, ctx.i18n)
       ctx.reply(message, markup)

@@ -25,6 +25,7 @@
 		"msg_create_insufficient": "Insufficient balance, you need {{amount}} in wallet to create.",
 		"msg_create_minimum": "A share(Amount/Share) of RE should be >= {{amount}}",
 		"msg_create_share": "Send RE by sharing the link:",
+		"msg_create_waiting": "Creating RE...",
 		"msg_amount_maximum": "Amount should be no more than 1M",
 		"msg_count_maximum": "Share should be no more than 1000",
 		"msg_create_transfer_failed": "[TODO]msg_create_transfer_failed",

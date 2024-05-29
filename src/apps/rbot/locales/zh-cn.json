@@ -25,6 +25,7 @@
 		"msg_create_insufficient": "账户余额不足，共需要 {{amount}} 钱包余额才能创建",
 		"msg_create_minimum": "红包每人份（金额/份数）要大于等于 {{amount}}",
 		"msg_create_share": "通过分享链接发送红包：",
+		"msg_create_waiting": "红包创建中...",
 		"msg_amount_maximum": "红包金额不能超过100万个符文",
 		"msg_count_maximum": "红包份数不能超过1000",
 		"msg_send_failed_user": "您的好友还不是Omnit REBot的朋友，不能分享红包\n\n请向你的好友推荐Omnity REBot @{{botname}}",
