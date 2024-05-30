@@ -6,7 +6,7 @@ import { getUserIdentity } from '../../identity'
 import { createPool } from '../../tokens'
 import { getSwapPrice, doSwap } from './rbot_swap';
 import { showWallet, transferToken } from './rbot_wallet'
-import { createRedEnvelope, sendRedEnvelope, grabRedEnvelope, revokeRedEnvelope, listRedEnvelope, showRedEnvelope, isRedEnvelopeEmpty, errorWithRedEnvelopeId, parseShareLink } from './rbot_re'
+import { createRedEnvelope, sendRedEnvelope, grabRedEnvelope, revokeRedEnvelope, listRedEnvelope, showRedEnvelope, isRedEnvelopeEmpty, errorWithRedEnvelopeId, parseShareLink, listSpreaders, listReferrals } from './rbot_re'
 import i18next, { I18nContext, getLanguage, setLanguage } from "./i18n"
 import * as S from "./status"
 
@@ -22,6 +22,7 @@ const WEBHOOK_PATH = process.env.RBOT_WEBHOOK_PATH || ""
 const SECRET_TOKEN = process.env.RBOT_SECRET_TOKEN || ""
 const RE_START_PICTURE = 'https://storage.googleapis.com/socialfi-agent/rebot/snatch.jpg'
 const RE_SNATCH_PICTURE = 'https://storage.googleapis.com/socialfi-agent/rebot/snatch.jpg'
+const WEB_APP_URL = "https://re-webapp.vercel.app/"
 
 const bot = new Telegraf<I18nContext>(BOT_TOKEN);
 
@@ -208,6 +209,30 @@ bot.command('swap', async ctx => {
   }
 })
 
+// bot.command('setmenu', ctx =>
+// 	ctx.setChatMenuButton({
+// 		text: "Launch",
+// 		type: "web_app",
+// 		web_app: { url: WEB_APP_URL },
+// 	}),
+// )
+
+bot.command('spreaders', async ctx => {
+  const chatType = ctx.message.chat.type
+  if (chatType === "private") {
+    ctx.replyWithHTML(await listSpreaders(ctx.i18n))
+  }
+})
+
+bot.command('referrals', async ctx => {
+  const userId = ctx.message.from.id;
+  const chatType = ctx.message.chat.type
+  if (chatType === "private") {
+    const [_, ...args] = ctx.message.text.split(' ');
+    ctx.replyWithHTML(await listReferrals(userId, args, ctx.i18n))
+  }
+})
+
 bot.on(message('text'), async ctx => {
   // ctx.telegram.webhookReply = true
   const chatType = ctx.message.chat.type
@@ -271,6 +296,14 @@ bot.on(message('text'), async ctx => {
         args.map(arg => arg.trim()).filter(arg => arg !== ''),
         ctx.i18n
       ))
+      break
+
+    case 'spreaders':
+      ctx.replyWithHTML(await listSpreaders(ctx.i18n))
+      break
+
+    case 'referrals':
+      ctx.replyWithHTML(await listReferrals(userId, args, ctx.i18n))
       break
 
     default:
@@ -473,6 +506,9 @@ bot.action(/^claimRedEnvelope_\d+(?:_[a-zA-Z0-9]+)?$/, async ctx => {
   }
 })
 
+
+// bot.launch()
+
 export const callback = bot.webhookCallback(WEBHOOK_PATH, { secretToken: SECRET_TOKEN })
 
 
@@ -518,5 +554,58 @@ const RBOT_START_IN_PRIVATE_KEYBOARD = (i18n: TFunction) => {
         { text: i18n('btn_help'), callback_data: "showCommandList" }
       ]
     ]
+  }
+}
+
+import { Request, Response } from '@google-cloud/functions-framework'
+import { createHmac } from "node:crypto";
+
+function HMAC_SHA256(key: string | Buffer, secret: string) {
+  return createHmac("sha256", key).update(secret);
+}
+
+function getCheckString(data: URLSearchParams) {
+	const items: [k: string, v: string][] = [];
+
+	// remove hash
+	for (const [k, v] of data.entries()) if (k !== "hash") items.push([k, v]);
+
+	return items.sort(([a], [b]) => a.localeCompare(b)) // sort keys
+		.map(([k, v]) => `${k}=${v}`) // combine key-value pairs
+		.join("\n");
+}
+
+export async function miniApp(req: Request, res: Response) {
+  // Set CORS headers for preflight requests
+  // Allows GETs from any origin with the Content-Type header
+  // and caches preflight response for 3600s
+
+  res.set('Access-Control-Allow-Origin', '*');
+
+  if (req.method === 'OPTIONS') {
+    // Send response to OPTIONS requests
+    res.set('Access-Control-Allow-Methods', 'GET');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.set('Access-Control-Max-Age', '3600');
+    res.status(204).send('');
+  } else {
+    if (req.originalUrl === '/validate-init') {
+      console.log('/validate-init');
+
+      const data = new URLSearchParams(req.body);
+
+      const data_check_string = getCheckString(data);
+      const secret_key = HMAC_SHA256("WebAppData", BOT_TOKEN).digest();
+      const hash = HMAC_SHA256(secret_key, data_check_string).digest("hex");
+
+      if (hash === data.get("hash")) {
+        // validated!
+        res.send(Object.fromEntries(data.entries()));
+      } else {
+        res.status(403).send('');
+      }
+    } else {
+      res.status(401).send('');
+    }
   }
 }

@@ -20,6 +20,8 @@
 		"msg_send_group": "RE {{id}} has been sent to {{group}}",
 		"msg_re_title": "send RE",
 		"msg_my_re_title": "My RICH Red Envelope",
+		"msg_spreaders": "Top Spreaders",
+		"msg_referrals": "My Referrals",
 		"msg_revoke": "Revoke amount {{amount}}",
 		"msg_create": "RE {{id}} created. {{fee}} fee charged. {{icrc1_fee}} collected by token ledger.",
 		"msg_create_insufficient": "Insufficient balance, you need {{amount}} in wallet to create.",
