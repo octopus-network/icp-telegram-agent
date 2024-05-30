@@ -209,13 +209,13 @@ bot.command('swap', async ctx => {
   }
 })
 
-bot.command('setmenu', ctx =>
-	ctx.setChatMenuButton({
-		text: "Launch",
-		type: "web_app",
-		web_app: { url: WEB_APP_URL },
-	}),
-)
+// bot.command('setmenu', ctx =>
+// 	ctx.setChatMenuButton({
+// 		text: "Launch",
+// 		type: "web_app",
+// 		web_app: { url: WEB_APP_URL },
+// 	}),
+// )
 
 bot.command('spreaders', async ctx => {
   const chatType = ctx.message.chat.type
