@@ -396,16 +396,19 @@ async function getAgentActor(): Promise<ActorSubclass<_SERVICE>> {
   return createActor(RBOT_CANISTER_ID, { agent })
 }
 
-export async function listSpreaders(i18n: TFunction) {
-  const spreaders = await S.getSpreaders(await createPool(), CAMPAIGN_START_DATE, CAMPAIGN_END_DATE)
+export async function listSpreaders(uid: number, i18n: TFunction) {
+  const {spreaders, total} = await S.getSpreaders(await createPool(), CAMPAIGN_START_DATE, CAMPAIGN_END_DATE)
+  const myReferralsCount = await S.getMyReferralsCount(await createPool(), CAMPAIGN_START_DATE, CAMPAIGN_END_DATE, uid)
 
   const data = spreaders.map((spreader, index) =>
     [String(index + 1), ...Object.values(spreader).map(value => String(value))]
   );
   data.unshift(['Rank', 'Username', 'Referrals']);
   const tableString = table(data, { border: getBorderCharacters('ramac'), })
-  let htmlString = '<b>' + i18n('msg_spreaders') + '</b>' + '\n'
-  htmlString += `<pre>${tableString}</pre>`
+  let htmlString = '<b>' + i18n('msg_spreaders') + '</b>' + '\n\n'
+  htmlString += `<pre>Period: ${CAMPAIGN_START_DATE} - ${CAMPAIGN_END_DATE}\n\nTotal Referrals: ${total}\nMy Referrals: ${myReferralsCount}\n\n`
+  htmlString += `${tableString}</pre>\n\n`
+  htmlString += `<a href="https://omnity.network/">View Rules</a>`
   return htmlString
 }
 
@@ -419,7 +422,7 @@ export async function listReferrals(uid: number, args: string[], i18n: TFunction
     }
   }
 
-  const {referrals, totalPages} = await S.getReferrals(await createPool(), CAMPAIGN_START_DATE, CAMPAIGN_END_DATE, uid, page)
+  const {referrals, total, totalPages} = await S.getReferrals(await createPool(), CAMPAIGN_START_DATE, CAMPAIGN_END_DATE, uid, page)
 
   const data = referrals.map(referral => {
     const { re_number, username, date } = referral;
@@ -430,7 +433,8 @@ export async function listReferrals(uid: number, args: string[], i18n: TFunction
   data.unshift(['No.', 'Username', 'Date']);
   const tableString = table(data, { border: getBorderCharacters('ramac'), })
   let htmlString = '<b>' + i18n('msg_referrals') + '</b>' + '\n'
-  htmlString += `<pre>${tableString}</pre>`
+  htmlString += `<pre>Period: ${CAMPAIGN_START_DATE} - ${CAMPAIGN_END_DATE}\n\nMy Referrals: ${total}\n\n`
+  htmlString += `${tableString}</pre>`
   if (totalPages > 1) {
     htmlString += `\n【${page}】/【${totalPages}】`
   }

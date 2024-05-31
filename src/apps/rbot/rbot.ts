@@ -218,9 +218,10 @@ bot.command('swap', async ctx => {
 // )
 
 bot.command('spreaders', async ctx => {
+  const userId = ctx.message.from.id;
   const chatType = ctx.message.chat.type
   if (chatType === "private") {
-    ctx.replyWithHTML(await listSpreaders(ctx.i18n))
+    ctx.replyWithHTML(await listSpreaders(userId, ctx.i18n))
   }
 })
 
@@ -299,7 +300,7 @@ bot.on(message('text'), async ctx => {
       break
 
     case 'spreaders':
-      ctx.replyWithHTML(await listSpreaders(ctx.i18n))
+      ctx.replyWithHTML(await listSpreaders(userId, ctx.i18n))
       break
 
     case 'referrals':

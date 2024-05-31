@@ -262,20 +262,56 @@ JOIN users ON users.uid = rs.uid
 WHERE w.create_time BETWEEN '2024-04-25' AND '2024-06-25'
 GROUP BY users.username
 ORDER BY COUNT(w.uid) DESC
-LIMIT 10;
+LIMIT 20;
 */
 
 export const getSpreaders = async (pool: Knex.Knex, start: string, end: string) => {
-  return await pool('wallets as w')
+  const spreaders = await pool('wallets as w')
     .select('users.username as username')
     .count('w.uid as referrals')
     .join('re_status as rs', 'w.channel', 'rs.id')
     .join('users', 'users.uid', 'rs.uid')
+    .where('users.org_id', 0)
     .whereBetween('w.create_time', [start, end])
     .groupBy('users.username')
     .orderByRaw('count(w.uid) DESC')
-    .limit(10);
+    .limit(20);
+
+  const totalCount = await pool('wallets as w')
+    .whereBetween('w.create_time', [start, end])
+    .whereNotNull('w.channel')
+    .count('* as total');
+
+  let total: number;
+
+  if (typeof totalCount[0].total === 'string') {
+    total = parseInt(totalCount[0].total);
+  } else {
+    total = totalCount[0].total;
+  }
+
+  return {spreaders, total};
 };
+
+export const getMyReferralsCount = async (pool: Knex.Knex, start: string, end: string, uid: number) => {
+
+  // Get total count of records
+  const totalCount = await pool('wallets as w')
+    .join('re_status as rs', 'w.channel', 'rs.id')
+    .join('users', 'users.uid', 'w.uid')
+    .where('rs.uid', uid)
+    .whereBetween('w.create_time', [start, end])
+    .count('* as total');
+
+  let total: number;
+
+  if (typeof totalCount[0].total === 'string') {
+    total = parseInt(totalCount[0].total);
+  } else {
+    total = totalCount[0].total;
+  }
+  return total;
+}
 
 /*
 SELECT w.channel as re_number, users.username as username, w.create_time as date
@@ -326,5 +362,5 @@ export const getReferrals = async (pool: Knex.Knex, start: string, end: string, 
     .offset(offset);
 
 
-  return { referrals, totalPages };
+  return { referrals, total, totalPages };
 };
