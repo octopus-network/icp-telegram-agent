@@ -27,17 +27,8 @@ const TOKEN_DECIMALS = process.env.RBOT_TOKEN_DECIMALS || "2"
 const CAMPAIGN_START_DATE = "2024-06-03T00:00:00+08:00"
 const CAMPAIGN_END_DATE = "2024-06-10T00:00:00+08:00"
 
-function formatUTCDate(date: Date) {
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes} UTC`;
-}
-
-const CAMPAIGN_START_DATE_UTC = formatUTCDate(new Date(CAMPAIGN_START_DATE));
-const CAMPAIGN_END_DATE_UTC = formatUTCDate(new Date(CAMPAIGN_END_DATE));
+const CAMPAIGN_START_DATE_UTC8 = "2024-06-03"
+const CAMPAIGN_END_DATE_UTC8 = "2024-06-10 00:00 UTC+8"
 
 export async function createRedEnvelope(userId: number, args: string, i18n: TFunction): Promise<[string, string[]?, object?]> {
   const token = await getTokenBySymbol(await createPool(), TOKEN_SYMBOL)
@@ -424,7 +415,7 @@ export async function listSpreaders(uid: number, i18n: TFunction) {
   data.unshift(['Rank', 'Username', 'Referrals']);
   const tableString = table(data, { border: getBorderCharacters('ramac'), })
   let htmlString = '<b>' + i18n('msg_spreaders') + '</b>' + '\n\n'
-  htmlString += `<pre>Period: ${CAMPAIGN_START_DATE_UTC} - ${CAMPAIGN_END_DATE_UTC}\n\nTotal Referrals: ${total}\nMy Referrals: ${myReferralsCount}\n\n`
+  htmlString += `<pre>Period: ${CAMPAIGN_START_DATE_UTC8} - ${CAMPAIGN_END_DATE_UTC8}\n\nTotal Referrals: ${total}\nMy Referrals: ${myReferralsCount}\n\n`
   htmlString += `${tableString}</pre>\n\n`
   htmlString += `<a href="https://bit.ly/4bMERC7">View Rules</a>`
   return htmlString
@@ -451,7 +442,7 @@ export async function listReferrals(uid: number, args: string[], i18n: TFunction
   data.unshift(['No.', 'Username', 'Date']);
   const tableString = table(data, { border: getBorderCharacters('ramac'), })
   let htmlString = '<b>' + i18n('msg_referrals') + '</b>' + '\n'
-  htmlString += `<pre>Period: ${CAMPAIGN_START_DATE_UTC} - ${CAMPAIGN_END_DATE_UTC}\n\nMy Referrals: ${total}\n\n`
+  htmlString += `<pre>Period: ${CAMPAIGN_START_DATE_UTC8} - ${CAMPAIGN_END_DATE_UTC8}\n\nMy Referrals: ${total}\n\n`
   htmlString += `${tableString}</pre>`
   if (totalPages > 1) {
     htmlString += `\n【${page}】/【${totalPages}】`
