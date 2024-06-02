@@ -26,7 +26,7 @@
 		"msg_create": "RE {{id}} created. {{fee}} fee charged. {{icrc1_fee}} collected by token ledger.",
 		"msg_create_insufficient": "Insufficient balance, you need {{amount}} in wallet to create.",
 		"msg_create_minimum": "A share(Amount/Share) of RE should be >= {{amount}}",
-		"msg_create_share": "Send RE by sharing the link:",
+		"msg_create_share": "Send RE by sharing the link or the QR code.",
 		"msg_create_waiting": "Creating RE...",
 		"msg_amount_maximum": "Amount should be no more than 1M",
 		"msg_count_maximum": "Share should be no more than 1000",

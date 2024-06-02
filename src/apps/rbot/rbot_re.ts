@@ -5,7 +5,8 @@ import { table, getBorderCharacters } from "table"
 import { TFunction } from "i18next"
 import { join } from "path"
 import sharp from 'sharp'
-import * as crypto from 'crypto'
+import Crypto from 'crypto'
+import QRCode from 'qrcode'
 
 import { makeAgent } from '../../utils'
 import { getAgentIdentity, getUserIdentity } from '../../identity'
@@ -38,7 +39,7 @@ function formatUTCDate(date: Date) {
 const CAMPAIGN_START_DATE_UTC = formatUTCDate(new Date(CAMPAIGN_START_DATE));
 const CAMPAIGN_END_DATE_UTC = formatUTCDate(new Date(CAMPAIGN_END_DATE));
 
-export async function createRedEnvelope(userId: number, args: string, i18n: TFunction): Promise<[string, object?]> {
+export async function createRedEnvelope(userId: number, args: string, i18n: TFunction): Promise<[string, string[]?, object?]> {
   const token = await getTokenBySymbol(await createPool(), TOKEN_SYMBOL)
   if (!token) {
     return [i18n('msg_how_to_create')]
@@ -147,9 +148,14 @@ export async function createRedEnvelope(userId: number, args: string, i18n: TFun
       icrc1_fee: bigintToString(transFee * 2n, parseInt(TOKEN_DECIMALS)),
     })
     // share link
-    message += '\n\n' + i18n('msg_create_share')
-    message += '\n' + generateShareLink(userId, rid.toString())
-    return [message, keyboard]
+    const link = generateShareLink(userId, rid.toString())
+    const share = [i18n('msg_create_share') + '\n' + link]
+    const output = `/tmp/share_${rid.toString()}.png`
+    try {
+      await QRCode.toFile(output, link)
+      share.push(output)
+    } catch (error) { }
+    return [message, share, keyboard]
   }
 }
 
@@ -382,7 +388,7 @@ export function generateShareLink(userId: number, rid: string) {
   const secret = process.env.SOCIALFI_AGENT_SECRET_KEY!
   const key = Buffer.from(secret.slice(0, 32), 'hex')
   const iv = Buffer.from(secret.slice(32), 'hex')
-  const cipher = crypto.createCipheriv('aes-128-cbc', key, iv)
+  const cipher = Crypto.createCipheriv('aes-128-cbc', key, iv)
   let encrypted = cipher.update(start, 'utf8', 'base64url')
   encrypted += cipher.final('base64url')
   return `https://t.me/${RBOT_BOT_USERNAME}?start=${encrypted}`
@@ -393,7 +399,7 @@ export function parseShareLink(payload: string): string | undefined {
   const key = Buffer.from(secret.slice(0, 32), 'hex')
   const iv = Buffer.from(secret.slice(32), 'hex')
   try {
-    const decipher = crypto.createDecipheriv('aes-128-cbc', key, iv)
+    const decipher = Crypto.createDecipheriv('aes-128-cbc', key, iv)
     let decrypted = decipher.update(payload, 'base64url', 'utf8')
     decrypted += decipher.final('utf8')
     return decrypted

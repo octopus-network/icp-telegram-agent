@@ -139,8 +139,15 @@ bot.command('create', async ctx => {
   const [_, args] = ctx.message.text.split(/ (.+)/, 2);
   if (chatType === "private") {
     ctx.reply(ctx.i18n('msg_create_waiting'))
-    const [message, markup] = await createRedEnvelope(userId, args, ctx.i18n)
-    ctx.reply(message, markup)
+    const [message, share, markup] = await createRedEnvelope(userId, args, ctx.i18n)
+    if (share?.length == 1) {
+      ctx.reply(message + '\n\n' + share[0], markup)
+    } else if (share?.length == 2) {
+      ctx.reply(message, markup)
+      ctx.replyWithPhoto({ source: share[1] }, { caption: share[0] })
+    } else {
+      ctx.reply(message, markup)
+    }
   }
 })
 
@@ -266,8 +273,15 @@ bot.on(message('text'), async ctx => {
     case 'create':
       ctx.reply(ctx.i18n('msg_create_waiting'))
       const [_, _args] = ctx.message.text.split(/ (.+)/, 2)
-      const [message, markup] = await createRedEnvelope(userId, _args, ctx.i18n)
-      ctx.reply(message, markup)
+      const [message, share, markup] = await createRedEnvelope(userId, _args, ctx.i18n)
+      if (share?.length == 1) {
+        ctx.reply(message + '\n\n' + share[0], markup)
+      } else if (share?.length == 2) {
+        ctx.reply(message, markup)
+        ctx.replyWithPhoto({ source: share[1] }, { caption: share[0] })
+      } else {
+        ctx.reply(message, markup)
+      }
       break
 
     case 'list':
@@ -566,14 +580,14 @@ function HMAC_SHA256(key: string | Buffer, secret: string) {
 }
 
 function getCheckString(data: URLSearchParams) {
-	const items: [k: string, v: string][] = [];
+  const items: [k: string, v: string][] = [];
 
-	// remove hash
-	for (const [k, v] of data.entries()) if (k !== "hash") items.push([k, v]);
+  // remove hash
+  for (const [k, v] of data.entries()) if (k !== "hash") items.push([k, v]);
 
-	return items.sort(([a], [b]) => a.localeCompare(b)) // sort keys
-		.map(([k, v]) => `${k}=${v}`) // combine key-value pairs
-		.join("\n");
+  return items.sort(([a], [b]) => a.localeCompare(b)) // sort keys
+    .map(([k, v]) => `${k}=${v}`) // combine key-value pairs
+    .join("\n");
 }
 
 export async function miniApp(req: Request, res: Response) {
