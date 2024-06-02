@@ -91,7 +91,7 @@ export const getReStatusByIds = async (pool: Knex.Knex, ids: number[], uid: numb
 export const getReCount = async (pool: Knex.Knex, duration?: number): Promise<number> => {
   let query = pool('re_status')
     .count<Record<string, number>>('id as count')
-    .where('is_sent', true)
+    // .where('is_sent', true)
 
   if (duration) {
     const startTime = new Date((new Date()).getTime() - duration * 1000)
@@ -105,7 +105,7 @@ export const getReCount = async (pool: Knex.Knex, duration?: number): Promise<nu
 export const getReAmount = async (pool: Knex.Knex, duration?: number): Promise<string> => {
   let query = pool('re_status')
     .sum<Record<string, number>>({ sum: pool.raw('CAST(amount AS bigint)') })
-    .where('is_sent', true)
+    // .where('is_sent', true)
 
   if (duration) {
     const startTime = new Date((new Date()).getTime() - duration * 1000)
