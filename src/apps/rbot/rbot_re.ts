@@ -24,7 +24,7 @@ const RBOT_BOT_USERNAME = process.env.RBOT_BOT_USERNAME || ""
 const TOKEN_SYMBOL = process.env.RBOT_TOKEN_SYMBOL || ""
 const TOKEN_DECIMALS = process.env.RBOT_TOKEN_DECIMALS || "2"
 
-const CAMPAIGN_START_DATE = "2024-04-03T00:00:00+08:00"
+const CAMPAIGN_START_DATE = "2024-06-03T00:00:00+08:00"
 const CAMPAIGN_END_DATE = "2024-06-10T00:00:00+08:00"
 
 function formatUTCDate(date: Date) {
@@ -426,7 +426,7 @@ export async function listSpreaders(uid: number, i18n: TFunction) {
   let htmlString = '<b>' + i18n('msg_spreaders') + '</b>' + '\n\n'
   htmlString += `<pre>Period: ${CAMPAIGN_START_DATE_UTC} - ${CAMPAIGN_END_DATE_UTC}\n\nTotal Referrals: ${total}\nMy Referrals: ${myReferralsCount}\n\n`
   htmlString += `${tableString}</pre>\n\n`
-  htmlString += `<a href="https://omnity.network/">View Rules</a>`
+  htmlString += `<a href="https://bit.ly/4bMERC7">View Rules</a>`
   return htmlString
 }
 

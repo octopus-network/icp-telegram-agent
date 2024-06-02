@@ -444,6 +444,16 @@ bot.action('showSwap', ctx => {
   ctx.reply(ctx.i18n('msg_how_to_swap'))
 })
 
+bot.action('showSpreaders', async ctx => {
+  const userId = ctx.callbackQuery.from.id
+  ctx.replyWithHTML(await listSpreaders(userId, ctx.i18n))
+})
+
+bot.action('showReferrals', async ctx => {
+  const userId = ctx.callbackQuery.from.id
+  ctx.replyWithHTML(await listReferrals(userId, [], ctx.i18n))
+})
+
 bot.action('showREs', async ctx => {
   // ctx.telegram.webhookReply = false
   // collect user profile
@@ -563,6 +573,10 @@ const RBOT_START_IN_PRIVATE_KEYBOARD = (i18n: TFunction) => {
       [
         { text: i18n('btn_preswap'), callback_data: "showPreswap" },
         { text: i18n('btn_swap'), callback_data: "showSwap" },
+      ],
+      [
+        { text: i18n('btn_spreaders'), callback_data: "showSpreaders" },
+        { text: i18n('btn_referrals'), callback_data: "showReferrals" },
       ],
       [
         { text: i18n('btn_language'), callback_data: "switchLanguage" },
