@@ -75,6 +75,17 @@ export async function createRedEnvelope(userId: number, args: string, i18n: TFun
 
   const random = (matches[3] === 'F') ? false : true
   const memo = matches[4] || ''
+
+  // Check if memo contains HTML restricted characters
+  const htmlRestrictedCharacters = /[<>]/;
+  if (htmlRestrictedCharacters.test(memo)) {
+    return [i18n('msg_err_memo_characters')]
+  }
+
+  // Check if memo length is more than 140
+  if (memo.length > 140) {
+    return [i18n('msg_err_memo_length')]
+  }
   // default: utc nanoseconds + 24hours
   const expires_at = BigInt((new Date()).getTime() + (24 * 60 * 60 * 1000)) * 1000000n
 
@@ -505,12 +516,14 @@ const RBOT_SELECT_USER_GROUP_KEYBOARD = (rid: number, count: number, i18n: TFunc
     return Markup.keyboard([
       Markup.button.userRequest(i18n('btn_select_user'), rid + 1),
       Markup.button.groupRequest(i18n('btn_select_group'), rid),
+      Markup.button.channelRequest(i18n('btn_select_channel'), rid + 2),
     ]).oneTime().resize()
   } else {
     return Markup.keyboard([
       // TODO:
       Markup.button.userRequest(i18n('btn_select_user'), rid + 1),
       Markup.button.groupRequest(i18n('btn_select_group'), rid),
+      Markup.button.channelRequest(i18n('btn_select_channel'), rid + 2),
     ]).oneTime().resize()
   }
 }

@@ -321,7 +321,11 @@ bot.on(message('text'), async ctx => {
 bot.on(message('chat_shared'), async ctx => {
   // ctx.telegram.webhookReply = false
   const chatId = ctx.message.chat_shared.chat_id
-  const requestId = ctx.message.chat_shared.request_id
+  const chat = await ctx.telegram.getChat(chatId)
+  let requestId = ctx.message.chat_shared.request_id
+  if (chat.type === 'channel') {
+    requestId = requestId - 2
+  }
   if (chatId && requestId) {
     const username = ctx.message.from.username ? `@${ctx.message.from.username}` : ctx.message.from.first_name
     const [message, cover, markup] = await showRedEnvelope(username, [requestId.toString()], ctx.i18n)
@@ -338,8 +342,7 @@ bot.on(message('chat_shared'), async ctx => {
           // update re is_sent receiver send_time
           // await S.updateReStatusIsSent(await createPool(), requestId, true)
           await S.updateReStatusReceiver(await createPool(), requestId, `g_${chatId}`)
-          const chat = await ctx.telegram.getChat(chatId)
-          if (chat.type === 'group' || chat.type === 'supergroup') {
+          if (chat.type === 'group' || chat.type === 'supergroup' || chat.type === 'channel') {
             ctx.reply(ctx.i18n('msg_send_group', {
               id: requestId,
               group: chat.title,
