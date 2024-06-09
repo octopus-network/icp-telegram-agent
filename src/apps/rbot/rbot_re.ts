@@ -534,9 +534,10 @@ const RBOT_REDENVELOPE_KEYBOARD = (i18n: TFunction, rid: bigint) => {
       [
         {
           text: i18n('btn_snatch'),
-          callback_data: `claimRedEnvelope_${rid.toString()}_${RBOT_BOT_USERNAME}`
+          // callback_data: `claimRedEnvelope_${rid.toString()}_${RBOT_BOT_USERNAME}`
           // claimRedEnvelope_999_RE00bot
           // url: `https://t.me/${RBOT_BOT_USERNAME}?start=claimRedEnvelope_${rid.toString()}`
+          url: `https://t.me/RE00bot/app?startapp=${rid.toString()}`
         },
       ]
     ]
