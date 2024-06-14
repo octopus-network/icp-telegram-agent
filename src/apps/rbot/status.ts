@@ -266,7 +266,7 @@ LIMIT 20;
 */
 
 export const getSpreaders = async (pool: Knex.Knex, start: string, end: string) => {
-  const spreaders = await pool('wallets as w')
+  const topSpreaders = await pool('wallets as w')
     .select(pool.raw('coalesce(users.username, users.uid::text) as username'))
     .count('w.uid as referrals')
     .join('re_status as rs', 'w.channel', 'rs.id')
@@ -277,20 +277,37 @@ export const getSpreaders = async (pool: Knex.Knex, start: string, end: string) 
     .orderByRaw('count(w.uid) DESC')
     .limit(20);
 
-  const totalCount = await pool('wallets as w')
+  const spreadersCount = await pool
+    .count('* as total')
+    .from(
+        pool('wallets as w')
+            .select('users.uid')
+            .join('re_status as rs', 'w.channel', 'rs.id')
+            .join('users', 'users.uid', 'rs.uid')
+            .where('users.org_id', 0)
+            .whereBetween('w.create_time', [start, end])
+            .groupBy('users.uid')
+            .having(pool.raw('count(w.uid) >= 20'))
+            .as('subquery')
+    )
+    .first();
+
+  let totalSpreadersCount = spreadersCount ? spreadersCount.total : 0;
+
+  const referralsCount = await pool('wallets as w')
     .whereBetween('w.create_time', [start, end])
     .whereNotNull('w.channel')
     .count('* as total');
 
-  let total: number;
+  let totalReferralsCount: number;
 
-  if (typeof totalCount[0].total === 'string') {
-    total = parseInt(totalCount[0].total);
+  if (typeof referralsCount[0].total === 'string') {
+    totalReferralsCount = parseInt(referralsCount[0].total);
   } else {
-    total = totalCount[0].total;
+    totalReferralsCount = referralsCount[0].total;
   }
 
-  return {spreaders, total};
+  return {topSpreaders, totalSpreadersCount, totalReferralsCount};
 };
 
 export const getMyReferralsCount = async (pool: Knex.Knex, start: string, end: string, uid: number) => {

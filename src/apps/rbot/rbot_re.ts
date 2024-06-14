@@ -417,16 +417,16 @@ async function getAgentActor(): Promise<ActorSubclass<_SERVICE>> {
 }
 
 export async function listSpreaders(uid: number, i18n: TFunction) {
-  const {spreaders, total} = await S.getSpreaders(await createPool(), CAMPAIGN_START_DATE, CAMPAIGN_END_DATE)
+  const {topSpreaders, totalSpreadersCount, totalReferralsCount} = await S.getSpreaders(await createPool(), CAMPAIGN_START_DATE, CAMPAIGN_END_DATE)
   const myReferralsCount = await S.getMyReferralsCount(await createPool(), CAMPAIGN_START_DATE, CAMPAIGN_END_DATE, uid)
 
-  const data = spreaders.map((spreader, index) =>
+  const data = topSpreaders.map((spreader, index) =>
     [String(index + 1), ...Object.values(spreader).map(value => String(value))]
   );
   data.unshift(['Rank', 'Username', 'Referrals']);
   const tableString = table(data, { border: getBorderCharacters('ramac'), })
   let htmlString = '<b>' + i18n('msg_spreaders') + '</b>' + '\n\n'
-  htmlString += `<pre>Period: ${CAMPAIGN_START_DATE_UTC8} - ${CAMPAIGN_END_DATE_UTC8}\n\nTotal Referrals: ${total}\nMy Referrals: ${myReferralsCount}\n\n`
+  htmlString += `<pre>Period: ${CAMPAIGN_START_DATE_UTC8} - ${CAMPAIGN_END_DATE_UTC8}\n\nTotal Spreaders: ${totalSpreadersCount}\nTotal Referrals: ${totalReferralsCount}\nMy Referrals: ${myReferralsCount}\n\n`
   htmlString += `${tableString}</pre>\n\n`
   htmlString += `<a href="https://bit.ly/4bMERC7">View Rules</a>`
   return htmlString
@@ -462,25 +462,10 @@ export async function listReferrals(uid: number, args: string[], i18n: TFunction
 }
 
 const RBOT_REDENVELOPE_COVER = async (id: string, amount: bigint, count: number) => {
-  // remove .00 & adjust font size
-  let amountStr = bigintToString(amount, parseInt(TOKEN_DECIMALS))
-  if (amountStr.endsWith('.00')) {
-    amountStr = amountStr.slice(0, -3);
-  }
-  let size = 76
-  if (amountStr.length > 6) {
-    size -= 8 * Math.ceil((amountStr.length - 6) / 2)
-  }
-  const shares = count == 1 ? '1 Share' : `${count} Shares`
   // prepare svg
   const svg = Buffer.from(`
     <svg width="680" height="480" viewBox="0 0 680 480">
       <defs>
-        <font-face font-family="ProductSansBold">
-          <font-src>
-            <font-face-uri href="https://storage.googleapis.com/socialfi-agent/rebot/ProductSans-Bold.ttf" />
-          </font-src>
-        </font-face>
         <font-face font-family="ProductSansRegular">
           <font-src>
             <font-face-uri href="https://storage.googleapis.com/socialfi-agent/rebot/ProductSans-Regular.ttf" />
@@ -489,12 +474,6 @@ const RBOT_REDENVELOPE_COVER = async (id: string, amount: bigint, count: number)
       </defs>
       <text x="32" y="48" style="font-family: 'ProductSansRegular'; font-size: 32px; fill: #a6191b;" text-anchor="start" alignment-baseline="baseline">
         No.${id}
-      </text>
-      <text x="340" y="210" style="font-family: 'ProductSansBold'; font-size: ${size}px; fill: #fee499;" text-anchor="middle" alignment-baseline="central">
-        ${amountStr}
-      </text>
-      <text x="340" y="280" style="font-family: 'ProductSansRegular'; font-size: 36px; fill: #fee499;" text-anchor="middle" alignment-baseline="central">
-        ${shares}
       </text>
     </svg>
   `)
@@ -537,7 +516,7 @@ const RBOT_REDENVELOPE_KEYBOARD = (i18n: TFunction, rid: bigint) => {
           // callback_data: `claimRedEnvelope_${rid.toString()}_${RBOT_BOT_USERNAME}`
           // claimRedEnvelope_999_RE00bot
           // url: `https://t.me/${RBOT_BOT_USERNAME}?start=claimRedEnvelope_${rid.toString()}`
-          url: `https://t.me/RE00bot/app?startapp=${rid.toString()}`
+          url: `https://t.me/${RBOT_BOT_USERNAME}/app?startapp=${rid.toString()}`
         },
       ]
     ]
