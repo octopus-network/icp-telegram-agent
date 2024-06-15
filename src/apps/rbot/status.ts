@@ -254,26 +254,18 @@ export const insertUser = async (pool: Knex.Knex, user: User) => {
     });
 }
 
-/*
-SELECT users.username as username, COUNT(w.uid) as referrals
-FROM wallets AS w
-JOIN re_status AS rs ON w.channel = rs.id
-JOIN users ON users.uid = rs.uid
-WHERE w.create_time BETWEEN '2024-04-25' AND '2024-06-25'
-GROUP BY users.username
-ORDER BY COUNT(w.uid) DESC
-LIMIT 20;
-*/
-
 export const getSpreaders = async (pool: Knex.Knex, start: string, end: string) => {
   const topSpreaders = await pool('wallets as w')
-    .select(pool.raw('coalesce(users.username, users.uid::text) as username'))
+    .select(pool.raw('coalesce(user_entity."firstName", user_entity."telegramUsername", user_entity."telegramId"::text) as username'))
     .count('w.uid as referrals')
     .join('re_status as rs', 'w.channel', 'rs.id')
-    .join('users', 'users.uid', 'rs.uid')
-    .where('users.org_id', 0)
+    .join('user_entity', 'user_entity.telegramId', 'rs.uid')
+    .where(function() {
+      this.whereNull('user_entity.orgId')
+          .orWhereNot('user_entity.orgId', 0)
+    })
     .whereBetween('w.create_time', [start, end])
-    .groupBy('users.username', 'users.uid')
+    .groupBy('user_entity.firstName', 'user_entity.telegramUsername', 'user_entity.telegramId')
     .orderByRaw('count(w.uid) DESC')
     .limit(20);
 
@@ -281,12 +273,15 @@ export const getSpreaders = async (pool: Knex.Knex, start: string, end: string) 
     .count('* as total')
     .from(
         pool('wallets as w')
-            .select('users.uid')
+            .select('user_entity.telegramId')
             .join('re_status as rs', 'w.channel', 'rs.id')
-            .join('users', 'users.uid', 'rs.uid')
-            .where('users.org_id', 0)
+            .join('user_entity', 'user_entity.telegramId', 'rs.uid')
+            .where(function() {
+              this.whereNull('user_entity.orgId')
+                  .orWhereNot('user_entity.orgId', 0)
+            })
             .whereBetween('w.create_time', [start, end])
-            .groupBy('users.uid')
+            .groupBy('user_entity.telegramId')
             .having(pool.raw('count(w.uid) >= 20'))
             .as('subquery')
     )
