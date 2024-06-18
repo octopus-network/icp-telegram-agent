@@ -46,9 +46,11 @@ export async function createRedEnvelope(userId: number, args: string, i18n: TFun
    * 
    * 88 5 F ababbaba
    * /^(\d+)\s+(\d+)(?:\s+(F\b))?(?:\s+(.*))?$/
+   * 
+   * 88 5 F 1H/1D/1W ababbaba
    */
   let amountPattern = '\\d+(?:\\.\\d{1,' + TOKEN_DECIMALS + '})?';
-  let creationPattern = '^(' + amountPattern + ')\\s+(\\d+)(?:\\s+(F\\b))?(?:\\s+(.*))?$';
+  let creationPattern = '^(' + amountPattern + ')\\s+(\\d+)(?:\\s+(F\\b))?(?:\\s+(1[HDWhdw]))?(?:\\s+(.*))?$';
   const pattern = new RegExp(creationPattern);
   // const pattern = /^(\d+)\s+(\d+)(?:\s+(F\b))?(?:\s+(.*))?$/
   const matches = args.trim().match(pattern)
@@ -74,7 +76,8 @@ export async function createRedEnvelope(userId: number, args: string, i18n: TFun
   }
 
   const random = (matches[3] === 'F') ? false : true
-  const memo = matches[4] || ''
+  const expire = matches[4] || '1D'
+  const memo = matches[5] || ''
 
   // Check if memo contains HTML restricted characters
   const htmlRestrictedCharacters = /[<>]/;
@@ -87,7 +90,12 @@ export async function createRedEnvelope(userId: number, args: string, i18n: TFun
     return [i18n('msg_err_memo_length')]
   }
   // default: utc nanoseconds + 24hours
-  const expires_at = BigInt((new Date()).getTime() + (24 * 60 * 60 * 1000)) * 1000000n
+  let expires_at = BigInt((new Date()).getTime() + (24 * 60 * 60 * 1000)) * 1000000n
+  if (expire.toUpperCase() === '1H') {
+    expires_at = BigInt((new Date()).getTime() + (60 * 60 * 1000)) * 1000000n
+  } else if (expire.toUpperCase() === '1W') {
+    expires_at = BigInt((new Date()).getTime() + (7 * 24 * 60 * 60 * 1000)) * 1000000n
+  }
 
   // TODO: Approve to agent, then transfer_from to re_app + fee_address
   const fee_amount = amount * BigInt(token.fee_ratio) / 100n
