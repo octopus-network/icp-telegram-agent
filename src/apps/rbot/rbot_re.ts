@@ -76,7 +76,7 @@ export async function createRedEnvelope(userId: number, args: string, i18n: TFun
   }
 
   const random = (matches[3] === 'F') ? false : true
-  const expire = matches[4] || '1D'
+  const expire = matches[4] || '1W'
   const memo = matches[5] || ''
 
   // Check if memo contains HTML restricted characters
