@@ -29,7 +29,7 @@
 		"msg_create_share": "Send RE by sharing the link or the QR code.",
 		"msg_create_waiting": "Creating RE...",
 		"msg_amount_maximum": "Amount should be no more than 1M",
-		"msg_count_maximum": "Share should be no more than 1000",
+		"msg_count_maximum": "Share should be no more than 3000",
 		"msg_err_memo_characters": "Memo contains HTML restricted characters.",
 		"msg_err_memo_length": "Memo length is more than 140 characters.",
 		"msg_create_transfer_failed": "[TODO]msg_create_transfer_failed",

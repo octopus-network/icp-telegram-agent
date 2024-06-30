@@ -29,7 +29,7 @@
 		"msg_create_share": "通过分享链接或二维码发送红包",
 		"msg_create_waiting": "红包创建中...",
 		"msg_amount_maximum": "红包金额不能超过100万个符文",
-		"msg_count_maximum": "红包份数不能超过1000",
+		"msg_count_maximum": "红包份数不能超过3000",
 		"msg_err_memo_characters": "memo包含非法字符",
 		"msg_err_memo_length": "memo不能超过140字符",
 		"msg_send_failed_user": "您的好友还不是Omnit REBot的朋友，不能分享红包\n\n请向你的好友推荐Omnity REBot @{{botname}}",

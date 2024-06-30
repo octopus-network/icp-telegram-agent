@@ -68,7 +68,7 @@ export async function createRedEnvelope(userId: number, args: string, i18n: TFun
   if (amount > 100000000n) {
     return [i18n('msg_amount_maximum')]
   }
-  if (count > 1000) {
+  if (count > 3000) {
     return [i18n('msg_count_maximum')]
   }
   if (amount / BigInt(count) < token.re_minimum_each) {
