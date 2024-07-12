@@ -32,10 +32,11 @@ export interface ReStatus {
   receiver?: string;
   send_time?: Date;
   create_time?: Date;
+  link_id: string;
 }
 
 export const insertReStatus = async (pool: Knex.Knex, status: ReStatus) => {
-  const { amount, expire_at, fee_amount, ...rest } = status;
+  const { amount, expire_at, fee_amount, link_id, ...rest } = status;
   const modifiedStatus = {
     ...rest,
     amount: amount.toString(),
@@ -44,7 +45,7 @@ export const insertReStatus = async (pool: Knex.Knex, status: ReStatus) => {
   };
   await pool('re_status')
     .insert({ ...modifiedStatus })
-    .onConflict('id')
+    .onConflict(['id', 'link_id'])
     .ignore();
 }
 
@@ -77,6 +78,12 @@ export const getReStatus = async (pool: Knex.Knex, id: number, uid: number) => {
   return await pool('re_status')
     .where('id', id)
     .andWhere('uid', uid)
+    .first() as ReStatus | undefined
+}
+
+export const getReStatusById = async (pool: Knex.Knex, id: number) => {
+  return await pool('re_status')
+    .where('id', id)
     .first() as ReStatus | undefined
 }
 

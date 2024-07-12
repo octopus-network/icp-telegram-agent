@@ -147,7 +147,8 @@ export async function createRedEnvelope(userId: number, args: string, i18n: TFun
       expire_at: expires_at,
       fee_amount,
       is_sent: false,
-      is_revoked: false
+      is_revoked: false,
+      link_id: ""
     }
     await S.insertReStatus(await createPool(), reStatus)
     // select user/group
@@ -372,8 +373,15 @@ export async function showRedEnvelope(userName: string, args: string[], i18n: TF
     const cover = await RBOT_REDENVELOPE_COVER(args[0], ret[0].amount, ret[0].num)
     let htmlString = '🧧🧧🧧 ' + i18n('from') + ' <b>' + userName + '</b>' + '\n'
     htmlString += ret[0].memo
-    const markup = { reply_markup: RBOT_REDENVELOPE_KEYBOARD(i18n, BigInt(args[0])) }
-    return [htmlString, cover, markup]
+
+    const pool = await createPool()
+    const reStatus = await S.getReStatusById(pool, Number(args[0]))
+    if (reStatus) {
+      const markup = { reply_markup: RBOT_REDENVELOPE_KEYBOARD(i18n, reStatus.link_id) }
+      return [htmlString, cover, markup]
+    } else {
+      return [i18n('reapp_error_1112', { id: args[0] })]
+    }
   } else {
     return [i18n('reapp_error_1112', { id: args[0] })]
   }
@@ -515,7 +523,7 @@ const RBOT_SELECT_USER_GROUP_KEYBOARD = (rid: number, count: number, i18n: TFunc
   }
 }
 
-const RBOT_REDENVELOPE_KEYBOARD = (i18n: TFunction, rid: bigint) => {
+const RBOT_REDENVELOPE_KEYBOARD = (i18n: TFunction, linkId: string) => {
   return {
     inline_keyboard: [
       [
@@ -524,7 +532,7 @@ const RBOT_REDENVELOPE_KEYBOARD = (i18n: TFunction, rid: bigint) => {
           // callback_data: `claimRedEnvelope_${rid.toString()}_${RBOT_BOT_USERNAME}`
           // claimRedEnvelope_999_RE00bot
           // url: `https://t.me/${RBOT_BOT_USERNAME}?start=claimRedEnvelope_${rid.toString()}`
-          url: `https://t.me/${RBOT_BOT_USERNAME}/app?startapp=${rid.toString()}`
+          url: `https://t.me/${RBOT_BOT_USERNAME}/app?startapp=${linkId}`
         },
       ]
     ]
