@@ -215,22 +215,22 @@ bot.command('swap', async ctx => {
   }
 })
 
-bot.command('spreaders', async ctx => {
-  const userId = ctx.message.from.id;
-  const chatType = ctx.message.chat.type
-  if (chatType === "private") {
-    ctx.replyWithHTML(await listSpreaders(userId, ctx.i18n))
-  }
-})
-
-bot.command('referrals', async ctx => {
-  const userId = ctx.message.from.id;
-  const chatType = ctx.message.chat.type
-  if (chatType === "private") {
-    const [_, ...args] = ctx.message.text.split(' ');
-    ctx.replyWithHTML(await listReferrals(userId, args, ctx.i18n))
-  }
-})
+// bot.command('spreaders', async ctx => {
+//   const userId = ctx.message.from.id;
+//   const chatType = ctx.message.chat.type
+//   if (chatType === "private") {
+//     ctx.replyWithHTML(await listSpreaders(userId, ctx.i18n))
+//   }
+// })
+// 
+// bot.command('referrals', async ctx => {
+//   const userId = ctx.message.from.id;
+//   const chatType = ctx.message.chat.type
+//   if (chatType === "private") {
+//     const [_, ...args] = ctx.message.text.split(' ');
+//     ctx.replyWithHTML(await listReferrals(userId, args, ctx.i18n))
+//   }
+// })
 
 bot.on(message('text'), async ctx => {
   // ctx.telegram.webhookReply = true
@@ -304,13 +304,13 @@ bot.on(message('text'), async ctx => {
       ))
       break
 
-    case 'spreaders':
-      ctx.replyWithHTML(await listSpreaders(userId, ctx.i18n))
-      break
+    // case 'spreaders':
+    //   ctx.replyWithHTML(await listSpreaders(userId, ctx.i18n))
+    //   break
 
-    case 'referrals':
-      ctx.replyWithHTML(await listReferrals(userId, args, ctx.i18n))
-      break
+    // case 'referrals':
+    //   ctx.replyWithHTML(await listReferrals(userId, args, ctx.i18n))
+    //   break
 
     default:
       ctx.replyWithHTML(ctx.i18n('msg_help'))
@@ -438,15 +438,15 @@ bot.action('showSwap', ctx => {
   ctx.reply(ctx.i18n('msg_how_to_swap'))
 })
 
-bot.action('showSpreaders', async ctx => {
-  const userId = ctx.callbackQuery.from.id
-  ctx.replyWithHTML(await listSpreaders(userId, ctx.i18n))
-})
-
-bot.action('showReferrals', async ctx => {
-  const userId = ctx.callbackQuery.from.id
-  ctx.replyWithHTML(await listReferrals(userId, [], ctx.i18n))
-})
+// bot.action('showSpreaders', async ctx => {
+//   const userId = ctx.callbackQuery.from.id
+//   ctx.replyWithHTML(await listSpreaders(userId, ctx.i18n))
+// })
+// 
+// bot.action('showReferrals', async ctx => {
+//   const userId = ctx.callbackQuery.from.id
+//   ctx.replyWithHTML(await listReferrals(userId, [], ctx.i18n))
+// })
 
 bot.action('showREs', async ctx => {
   // ctx.telegram.webhookReply = false
@@ -565,10 +565,10 @@ const RBOT_START_IN_PRIVATE_KEYBOARD = (i18n: TFunction) => {
         { text: i18n('btn_preswap'), callback_data: "showPreswap" },
         { text: i18n('btn_swap'), callback_data: "showSwap" },
       ],
-      [
-        { text: i18n('btn_spreaders'), callback_data: "showSpreaders" },
-        { text: i18n('btn_referrals'), callback_data: "showReferrals" },
-      ],
+      // [
+      //   { text: i18n('btn_spreaders'), callback_data: "showSpreaders" },
+      //   { text: i18n('btn_referrals'), callback_data: "showReferrals" },
+      // ],
       [
         { text: i18n('btn_language'), callback_data: "switchLanguage" },
         { text: i18n('btn_help'), callback_data: "showCommandList" }
