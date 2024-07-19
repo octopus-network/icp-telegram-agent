@@ -1,14 +1,4 @@
-type CanisterStatusResponse = record {
-  status : CanisterStatusType;
-  memory_size : nat;
-  cycles : nat;
-  settings : DefiniteCanisterSettings;
-  query_stats : QueryStats;
-  idle_cycles_burned_per_day : nat;
-  module_hash : opt vec nat8;
-  reserved_cycles : nat;
-};
-type CanisterStatusType = variant { stopped; stopping; running };
+type Account = record { owner : principal; subaccount : opt vec nat8 };
 type Chain = record {
   fee_token : opt text;
   canister_id : text;
@@ -20,13 +10,7 @@ type Chain = record {
 };
 type ChainState = variant { Active; Deactive };
 type ChainType = variant { SettlementChain; ExecutionChain };
-type DefiniteCanisterSettings = record {
-  freezing_threshold : nat;
-  controllers : vec principal;
-  reserved_cycles_limit : nat;
-  memory_allocation : nat;
-  compute_allocation : nat;
-};
+type ChangeFeeCollector = variant { SetTo : Account; Unset };
 type Event = variant {
   finalized_gen_ticket : record {
     request : GenerateTicketReq;
@@ -44,6 +28,7 @@ type Factor = variant {
   UpdateFeeTokenFactor : FeeTokenFactor;
   UpdateTargetChainFactor : TargetChainFactor;
 };
+type FeatureFlags = record { icrc2 : bool };
 type FeeTokenFactor = record { fee_token : text; fee_token_factor : nat };
 type GenerateTicketError = variant {
   InsufficientRedeemFee : record { provided : nat64; required : nat64 };
@@ -51,6 +36,7 @@ type GenerateTicketError = variant {
   TemporarilyUnavailable : text;
   InsufficientAllowance : record { allowance : nat64 };
   TransferFailure : text;
+  UnsupportedAction : text;
   RedeemFeeNotSet;
   UnsupportedChainId : text;
   UnsupportedToken : text;
@@ -58,6 +44,7 @@ type GenerateTicketError = variant {
 };
 type GenerateTicketOk = record { ticket_id : text };
 type GenerateTicketReq = record {
+  action : TxAction;
   token_id : text;
   from_subaccount : opt vec nat8;
   target_chain_id : text;
@@ -82,15 +69,9 @@ type MintTokenStatus = variant {
   Finalized : record { block_index : nat64 };
   Unknown;
 };
-type QueryStats = record {
-  response_payload_bytes_total : nat;
-  num_instructions_total : nat;
-  num_calls_total : nat;
-  request_payload_bytes_total : nat;
-};
-type Result = variant { Ok : CanisterStatusResponse; Err : text };
-type Result_1 = variant { Ok; Err : text };
-type Result_2 = variant { Ok : GenerateTicketOk; Err : GenerateTicketError };
+type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : GenerateTicketOk; Err : GenerateTicketError };
+type Result_2 = variant { Ok; Err : GenerateTicketError };
 type RouteArg = variant { Upgrade : opt UpgradeArgs; Init : InitArgs };
 type TargetChainFactor = record {
   target_chain_id : text;
@@ -113,15 +94,26 @@ type TokenResp = record {
   rune_id : opt text;
   symbol : text;
 };
+type TxAction = variant { Burn; Redeem; Mint; Transfer };
 type UpgradeArgs = record {
   hub_principal : opt principal;
   chain_id : opt text;
   chain_state : opt ChainState;
 };
+type UpgradeArgs_1 = record {
+  token_symbol : opt text;
+  transfer_fee : opt nat;
+  metadata : opt vec record { text; MetadataValue };
+  maximum_number_of_accounts : opt nat64;
+  accounts_overflow_trim_quantity : opt nat64;
+  change_fee_collector : opt ChangeFeeCollector;
+  max_memo_length : opt nat16;
+  token_name : opt text;
+  feature_flags : opt FeatureFlags;
+};
 service : {
-  controlled_canister_status : (principal) -> (Result);
-  delete_controlled_canister : (principal) -> (Result_1);
-  generate_ticket : (GenerateTicketReq) -> (Result_2);
+  collect_ledger_fee : (principal, opt nat, Account) -> (Result);
+  generate_ticket : (GenerateTicketReq) -> (Result_1);
   get_chain_list : () -> (vec Chain) query;
   get_events : (GetEventsArg) -> (vec Event) query;
   get_fee_account : (opt principal) -> (vec nat8) query;
@@ -130,11 +122,7 @@ service : {
   get_token_ledger : (text) -> (opt principal) query;
   get_token_list : () -> (vec TokenResp) query;
   mint_token_status : (text) -> (MintTokenStatus) query;
-  start_controlled_canister : (principal) -> (Result_1);
-  stop_controlled_canister : (principal) -> (Result_1);
-  update_icrc_ledger : (
-      principal,
-      opt nat,
-      opt vec record { text; MetadataValue },
-    ) -> (Result_1);
+  remove_controller : (principal, principal) -> (Result);
+  resend_tickets : () -> (Result_2);
+  update_icrc_ledger : (principal, UpgradeArgs_1) -> (Result);
 }

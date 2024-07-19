@@ -1,7 +1,7 @@
 import type { ActorSubclass } from "@dfinity/agent"
 import { createActor } from './declarations/icp_route'
 import { _SERVICE } from "./declarations/icp_route/icp_route.did"
-import type { GenerateTicketReq, Result_2 as GenerateTicketResp } from './declarations/icp_route/icp_route.did.d.ts'
+import type { GenerateTicketReq, Result_1 as GenerateTicketResp } from './declarations/icp_route/icp_route.did.d.ts'
 
 import { getAgentIdentity, getUserIdentity, delegateIdentity } from '../../identity'
 import { makeAgent } from '../../utils'
@@ -40,6 +40,7 @@ export async function getFeeAndAccount(userid: number, chain: ChainID): Promise<
 
 export async function generateTicket(userid: number, chain: ChainID, amount: bigint, receiver: string): Promise<GenerateTicketResp> {
   const req: GenerateTicketReq = {
+    action: { Redeem: null },
     token_id: OMNITY_TOKEN_ID,
     from_subaccount: [],
     target_chain_id: chain,

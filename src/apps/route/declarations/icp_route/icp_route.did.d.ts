@@ -2,19 +2,10 @@ import type { Principal } from '@dfinity/principal';
 import type { ActorMethod } from '@dfinity/agent';
 import type { IDL } from '@dfinity/candid';
 
-export interface CanisterStatusResponse {
-  'status' : CanisterStatusType,
-  'memory_size' : bigint,
-  'cycles' : bigint,
-  'settings' : DefiniteCanisterSettings,
-  'query_stats' : QueryStats,
-  'idle_cycles_burned_per_day' : bigint,
-  'module_hash' : [] | [Uint8Array | number[]],
-  'reserved_cycles' : bigint,
+export interface Account {
+  'owner' : Principal,
+  'subaccount' : [] | [Uint8Array | number[]],
 }
-export type CanisterStatusType = { 'stopped' : null } |
-  { 'stopping' : null } |
-  { 'running' : null };
 export interface Chain {
   'fee_token' : [] | [string],
   'canister_id' : string,
@@ -28,13 +19,8 @@ export type ChainState = { 'Active' : null } |
   { 'Deactive' : null };
 export type ChainType = { 'SettlementChain' : null } |
   { 'ExecutionChain' : null };
-export interface DefiniteCanisterSettings {
-  'freezing_threshold' : bigint,
-  'controllers' : Array<Principal>,
-  'reserved_cycles_limit' : bigint,
-  'memory_allocation' : bigint,
-  'compute_allocation' : bigint,
-}
+export type ChangeFeeCollector = { 'SetTo' : Account } |
+  { 'Unset' : null };
 export type Event = {
     'finalized_gen_ticket' : {
       'request' : GenerateTicketReq,
@@ -52,6 +38,7 @@ export type Event = {
   { 'toggle_chain_state' : ToggleState };
 export type Factor = { 'UpdateFeeTokenFactor' : FeeTokenFactor } |
   { 'UpdateTargetChainFactor' : TargetChainFactor };
+export interface FeatureFlags { 'icrc2' : boolean }
 export interface FeeTokenFactor {
   'fee_token' : string,
   'fee_token_factor' : bigint,
@@ -63,12 +50,14 @@ export type GenerateTicketError = {
   { 'TemporarilyUnavailable' : string } |
   { 'InsufficientAllowance' : { 'allowance' : bigint } } |
   { 'TransferFailure' : string } |
+  { 'UnsupportedAction' : string } |
   { 'RedeemFeeNotSet' : null } |
   { 'UnsupportedChainId' : string } |
   { 'UnsupportedToken' : string } |
   { 'InsufficientFunds' : { 'balance' : bigint } };
 export interface GenerateTicketOk { 'ticket_id' : string }
 export interface GenerateTicketReq {
+  'action' : TxAction,
   'token_id' : string,
   'from_subaccount' : [] | [Uint8Array | number[]],
   'target_chain_id' : string,
@@ -89,17 +78,11 @@ export type MetadataValue = { 'Int' : bigint } |
   { 'Text' : string };
 export type MintTokenStatus = { 'Finalized' : { 'block_index' : bigint } } |
   { 'Unknown' : null };
-export interface QueryStats {
-  'response_payload_bytes_total' : bigint,
-  'num_instructions_total' : bigint,
-  'num_calls_total' : bigint,
-  'request_payload_bytes_total' : bigint,
-}
-export type Result = { 'Ok' : CanisterStatusResponse } |
+export type Result = { 'Ok' : null } |
   { 'Err' : string };
-export type Result_1 = { 'Ok' : null } |
-  { 'Err' : string };
-export type Result_2 = { 'Ok' : GenerateTicketOk } |
+export type Result_1 = { 'Ok' : GenerateTicketOk } |
+  { 'Err' : GenerateTicketError };
+export type Result_2 = { 'Ok' : null } |
   { 'Err' : GenerateTicketError };
 export type RouteArg = { 'Upgrade' : [] | [UpgradeArgs] } |
   { 'Init' : InitArgs };
@@ -125,15 +108,32 @@ export interface TokenResp {
   'rune_id' : [] | [string],
   'symbol' : string,
 }
+export type TxAction = { 'Burn' : null } |
+  { 'Redeem' : null } |
+  { 'Mint' : null } |
+  { 'Transfer' : null };
 export interface UpgradeArgs {
   'hub_principal' : [] | [Principal],
   'chain_id' : [] | [string],
   'chain_state' : [] | [ChainState],
 }
+export interface UpgradeArgs_1 {
+  'token_symbol' : [] | [string],
+  'transfer_fee' : [] | [bigint],
+  'metadata' : [] | [Array<[string, MetadataValue]>],
+  'maximum_number_of_accounts' : [] | [bigint],
+  'accounts_overflow_trim_quantity' : [] | [bigint],
+  'change_fee_collector' : [] | [ChangeFeeCollector],
+  'max_memo_length' : [] | [number],
+  'token_name' : [] | [string],
+  'feature_flags' : [] | [FeatureFlags],
+}
 export interface _SERVICE {
-  'controlled_canister_status' : ActorMethod<[Principal], Result>,
-  'delete_controlled_canister' : ActorMethod<[Principal], Result_1>,
-  'generate_ticket' : ActorMethod<[GenerateTicketReq], Result_2>,
+  'collect_ledger_fee' : ActorMethod<
+    [Principal, [] | [bigint], Account],
+    Result
+  >,
+  'generate_ticket' : ActorMethod<[GenerateTicketReq], Result_1>,
   'get_chain_list' : ActorMethod<[], Array<Chain>>,
   'get_events' : ActorMethod<[GetEventsArg], Array<Event>>,
   'get_fee_account' : ActorMethod<[[] | [Principal]], Uint8Array | number[]>,
@@ -142,12 +142,9 @@ export interface _SERVICE {
   'get_token_ledger' : ActorMethod<[string], [] | [Principal]>,
   'get_token_list' : ActorMethod<[], Array<TokenResp>>,
   'mint_token_status' : ActorMethod<[string], MintTokenStatus>,
-  'start_controlled_canister' : ActorMethod<[Principal], Result_1>,
-  'stop_controlled_canister' : ActorMethod<[Principal], Result_1>,
-  'update_icrc_ledger' : ActorMethod<
-    [Principal, [] | [bigint], [] | [Array<[string, MetadataValue]>]],
-    Result_1
-  >,
+  'remove_controller' : ActorMethod<[Principal, Principal], Result>,
+  'resend_tickets' : ActorMethod<[], Result_2>,
+  'update_icrc_ledger' : ActorMethod<[Principal, UpgradeArgs_1], Result>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];
